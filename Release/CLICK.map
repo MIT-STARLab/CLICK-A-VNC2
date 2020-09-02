@@ -1,0 +1,47 @@
+Future Technology Devices International Limited (c) 2007-2010, All Rights Reserved
+
+
+CPU_CORE =   VC2, CPU_RAM_SIZE= 16 KB, CPU_ROM_SIZE=256 KB
+
+Linker Version  = V1.0.1 Loader Version =  V1.0.1
+Tue Sep 01 16:27:55 2020
+
+
+=================================================================================================================
+
+SEGMENT_MAP    
+=================================================================================================================
+
+Start Address                  Segment Name                   Segment Size
+=================================================================================================================
+
+0003c0 .text                          0000016922
+016ce2 .dataFlash                     0000000071
+000000 .dataRAM                       0000000071
+000071 .bss                           00000001da
+00024b .HeapRAM                       00000039b4
+
+=================================================================================================================
+
+SYMBOL_TABLE   
+=================================================================================================================
+
+SYM ADDRESS PUBLIC SYM NAME                SYM TYPE   MEM TYPE FILE NAME            SYM SIZE  
+NOTE:L=LABEL F=FUNCTION 0=FLASH and 1=RAM
+=================================================================================================================
+
+0043a iomux_setup                    F              0 CLICK_iomux.obj      00129
+16666 main                           F              0 CLICK.obj            000f4
+1675a uartsetup                      F              0 CLICK.obj            000a5
+167ff check_sync                     F              0 CLICK.obj            00068
+16867 reprogramming                  F              0 CLICK.obj            00159
+169c0 bus                            F              0 CLICK.obj            00322
+00239 hFAT_FILE_SYSTEM               L              1 CLICK.obj            00002
+0023b tcbREPROGRAMMING               L              1 CLICK.obj            00002
+0023d hBOMS                          L              1 CLICK.obj            00002
+0023f hUART                          L              1 CLICK.obj            00002
+00241 tcbBUS                         L              1 CLICK.obj            00002
+00243 hUSBHOST_1                     L              1 CLICK.obj            00002
+00245 hSPI_SLAVE_0                   L              1 CLICK.obj            00002
+00247 hSPI_SLAVE_1                   L              1 CLICK.obj            00002
+00249 hGPIO_PORT_A                   L              1 CLICK.obj            00002
