@@ -20,14 +20,6 @@ void iomux_setup(void)
 	packageType = vos_get_package_type();
 	if (packageType == VINCULUM_II_48_PIN)
 	{
-		//  to pin 11 output disabled.
-		vos_iomux_disable_output(199, 11);
-		// PWM_1 to pin 12 as Output.
-		vos_iomux_define_output(12, IOMUX_OUT_PWM_1);
-		// PWM_2 to pin 13 as Output.
-		vos_iomux_define_output(13, IOMUX_OUT_PWM_2);
-		// PWM_3 to pin 14 as Output.
-		vos_iomux_define_output(14, IOMUX_OUT_PWM_3);
 		// SPI_Slave_0_CLK to pin 15 as Input.
 		vos_iomux_define_input(15, IOMUX_IN_SPI_SLAVE_0_CLK);
 		// SPI_Slave_0_MOSI to pin 16 as Input.
@@ -50,28 +42,8 @@ void iomux_setup(void)
 		vos_iomux_define_input(32, IOMUX_IN_UART_RXD);
 		// GPIO_Port_A_2 to pin 33 as Output.
 		vos_iomux_define_output(33, IOMUX_OUT_GPIO_PORT_A_2);
-		vos_iocell_set_config(33, 0, 0, 0, 1);
 		// GPIO_Port_A_7 to pin 34 as Output.
 		vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
-		// UART_DSR_N to pin 36 as Input.
-		vos_iomux_define_input(36, IOMUX_IN_UART_DSR_N);
-		// UART_DCD to pin 37 as Input.
-		vos_iomux_define_input(37, IOMUX_IN_UART_DCD);
-		// UART_RI to pin 38 as Input.
-		vos_iomux_define_input(38, IOMUX_IN_UART_RI);
-		// UART_TX_Active to pin 41 as Output.
-		vos_iomux_define_output(41, IOMUX_OUT_UART_TX_ACTIVE);
-		// GPIO_Port_A_5 to pin 42 as Output.
-		vos_iomux_define_output(42, IOMUX_OUT_GPIO_PORT_A_5);
-		// GPIO_Port_A_6 to pin 43 as Output.
-		vos_iomux_define_output(43, IOMUX_OUT_GPIO_PORT_A_6);
-		// GPIO_Port_A_0 to pin 45 as Output.
-		vos_iomux_define_output(45, IOMUX_OUT_GPIO_PORT_A_0);
-		// GPIO_Port_A_1 to pin 46 as Input.
-		vos_iomux_define_input(46, IOMUX_IN_GPIO_PORT_A_1);
-		// GPIO_Port_A_3 to pin 48 as Output.
-		vos_iomux_define_output(48, IOMUX_OUT_GPIO_PORT_A_3);
-	
 	}
 	
 	/* FTDI:EIO */
