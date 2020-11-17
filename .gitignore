@@ -1,0 +1,6 @@
+*.bak
+*.i
+Release/**
+Debug/**
+.vscode/**
+build.ps1
