@@ -14,11 +14,11 @@
 #include "click.h"
 
 /* FTDI:STP Thread Prototypes */
-vos_tcb_t *tcbFIRMWARE;
-vos_tcb_t *tcbTHREAD_1;
+vos_tcb_t *tcbSPI;
+vos_tcb_t *tcbUART;
 
-void firmware();
-void thread_1();
+void spi_thread();
+void uart_thread();
 /* FTDI:ETP */
 
 /* FTDI:SDH Driver Handles */
@@ -83,8 +83,8 @@ void main(void)
 	/* FTDI:EDI */
 
 	/* FTDI:SCT Thread Creation */
-	tcbFIRMWARE = vos_create_thread_ex(20, 4096, firmware, "spi", 0);
-	tcbTHREAD_1 = vos_create_thread_ex(24, 1024, thread_1, "uart", 0);
+	tcbSPI = vos_create_thread_ex(20, 4096, spi_thread, "spi", 0);
+	tcbUART = vos_create_thread_ex(24, 1024, uart_thread, "uart", 0);
 	/* FTDI:ECT */
 
 	vos_start_scheduler();
@@ -151,14 +151,14 @@ void close_drivers(void)
 
 /* Application Threads */
 
-void firmware()
+void spi_thread()
 {
 	/* Thread code to be added here */
 
 
 }
 
-void thread_1()
+void uart_thread()
 {
 	/* Thread code to be added here */
 
