@@ -12,7 +12,7 @@
 
 // Basic definitions
 #define UART_PACKET_HEADER_LEN 12
-#define UART_PACKET_BLOB_MAX_LEN 528
+#define UART_PACKET_BLOB_MAX_LEN 524
 #define UART_PACKET_SYNC_MARKER 0x35, 0x2E, 0xF8, 0x53
 
 // Reprogramming flow control packets
@@ -53,12 +53,14 @@ typedef struct {
         unsigned char reserved;
     } header;
     unsigned short crc;
+    unsigned int blob_len;
     unsigned char blob[UART_PACKET_BLOB_MAX_LEN];
-    unsigned int currentLength;
 } uart_packet_t;
 
 // Processing functions
 void uart_packet_reset();
-int uart_packet_process(unsigned char *data, unsigned short len, uart_packet_t *ptr);
+int uart_packet_verify_header();
+int uart_packet_process_data(unsigned char *data, unsigned int len, uart_packet_t *ptr);
+void uart_packet_update_values(unsigned char *data, unsigned int len);
 
 #endif /* _uart_packets_H_ */
