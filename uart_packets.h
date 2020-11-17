@@ -29,14 +29,14 @@ typedef struct {
                 unsigned short secondary_header : 1;
                 unsigned short type : 1;
                 unsigned short version : 3;
-            } bits;
+            } field;
         } preamble;
         union {
             unsigned short raw;
             struct {
                 unsigned short count : 14;
                 unsigned short grouping : 2;
-            } bits;
+            } field;
         } sequence;
         unsigned short length;
         unsigned int timestamp;
@@ -53,6 +53,7 @@ const unsigned char UART_REPLY_RETRANSMIT[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x
 const unsigned char UART_REPLY_HEARTBEAT[]  = {UART_PACKET_SYNC_MARKER, 0x02, 0x25, 0, 0, 0, 1, 0x5C, 0x8D};
 const unsigned char UART_REPLY_READY[]      = {UART_PACKET_SYNC_MARKER, 0x02, 0x20, 0, 0, 0, 1, 0xE4, 0x83};
 
+// Processing functions
 void uart_packet_reset();
 uart_packet_status_t uart_packet_process(unsigned char *data, unsigned int len, uart_packet_t *packet);
 
