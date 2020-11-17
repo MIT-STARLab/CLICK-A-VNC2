@@ -6,7 +6,9 @@
 */
 
 #include "uart_handler.h"
+#include "uart_packets.h"
 
+// Initialize UART parameters and packetizer
 void uart_handler_init()
 {
     common_ioctl_cb_t uart_iocb;
@@ -34,6 +36,8 @@ void uart_handler_init()
 	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_PARITY;
 	uart_iocb.set.param = UART_PARITY_NONE;
 	vos_dev_ioctl(hUART, &uart_iocb);
+
+    uart_packet_reset();
 }
 
 void uart_handler_listen()
