@@ -52,6 +52,6 @@ typedef struct {
 void uart_packet_reset();
 int uart_packet_verify_header(uart_packet_t *packet);
 int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *packet);
-void uart_packet_update_values(unsigned char *data, size_t len);
+void uart_packet_update_values(unsigned char **data, size_t amount, size_t *len, size_t *pos);
 
 #endif /* _uart_packets_H_ */

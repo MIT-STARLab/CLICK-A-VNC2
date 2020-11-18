@@ -51,10 +51,13 @@ int uart_packet_verify_header(uart_packet_t *packet)
 }
 
 // Update running values
-void uart_packet_update_values(unsigned char *data, size_t len)
+void uart_packet_update_values(unsigned char **data, size_t amount, size_t *len, size_t *pos)
 {
-    current_crc = crc_16(current_crc, data, len);
-    current_length += len;
+    current_length += amount;
+    current_crc = crc_16(current_crc, *data, amount);
+    *data += amount;
+    *pos += amount;
+    *len -= amount;
 }
 
 // Process new UART data
@@ -63,69 +66,42 @@ int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *pac
     // Take care of header parsing
     size_t position = current_length;
     size_t remaining = UART_PACKET_HEADER_LEN - position;
-    if (remaining > 0)
+    size_t amount = (len >= remaining) ? remaining : len;
+    if (amount > 0)
     {
-        if (len >= remaining)
+        memcpy(&packet->header + position, data, amount);
+        uart_packet_update_values(&data, amount, &len, &position);
+        if (amount == remaining)
         {
-            memcpy(&packet->header + position, data, remaining);
-            if (uart_packet_verify_header(packet))
-            {
-                uart_packet_update_values(data, remaining);
-                data += remaining;
-                len -= remaining;
-            }
-            else
+            if (!uart_packet_verify_header(packet))
             {
                 uart_packet_reset();
                 return UART_PACKET_ERROR;
             }
         }
-        else
-        {
-            memcpy(&packet->header + position, data, len);
-            uart_packet_update_values(data, len);
-            return UART_PACKET_WAIT_DATA;
-        }
+        else return UART_PACKET_WAIT_DATA;
     }
 
     // Handle image blob copy
     position -= UART_PACKET_HEADER_LEN;
     remaining = packet->blob_len - position;
-    if (remaining > 0)
+    amount = (len >= remaining) ? remaining : len;
+    if (amount > 0)
     {
-        if (len >= remaining)
-        {
-            memcpy(&packet->blob + position, data, remaining);
-            uart_packet_update_values(data, remaining);
-            data += remaining;
-            len -= remaining;
-        }
-        else
-        {
-            memcpy(&packet->blob + position, data, len);
-            uart_packet_update_values(data, len);
-            return UART_PACKET_WAIT_DATA;
-        }
+        memcpy(&packet->blob + position, data, amount);
+        uart_packet_update_values(&data, amount, &len, &position);
+        if (remaining > amount) return UART_PACKET_WAIT_DATA;
     }
 
     // Handle CRC copy
     position -= packet->blob_len;
     remaining = 2 - position;
-    if (remaining > 0)
+    amount = (len >= remaining) ? remaining : len;
+    if (amount > 0)
     {
-        if (len >= remaining)
-        {
-            memcpy(&packet->crc + position, data, remaining);
-            uart_packet_update_values(data, remaining);
-            data += remaining;
-            len -= remaining;
-        }
-        else
-        {
-            memcpy(&packet->crc + position, data, len);
-            uart_packet_update_values(data, len);
-            return UART_PACKET_WAIT_DATA;
-        }
+        memcpy(&packet->crc + position, data, amount);
+        uart_packet_update_values(&data, amount, &len, &position);
+        if (remaining > amount) return UART_PACKET_WAIT_DATA;
     }
 
     // Too much data
