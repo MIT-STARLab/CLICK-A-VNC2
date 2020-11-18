@@ -24,32 +24,6 @@ void uart_packet_reset()
     current_crc = 0;
 }
 
-// Sanity checks on CCSDS header
-int uart_packet_verify_header(uart_packet_t *packet)
-{
-    // Blob len = CCSDS packet length + 1 - 6 (2nd header) - 2 (CRC-16)
-    size_t blob_len = packet->header.length - 7;
-
-    if (blob_len <= 0 || blob_len > UART_PACKET_BLOB_MAX_LEN)
-    {
-        // TODO: error
-        return 0;
-    }
-
-    if (packet->header.type != 1)
-    {
-        // TODO: warning
-    }
-
-    if (packet->header.APID != 0x200)
-    {
-        // TODO: warning
-    }
-
-    packet->blob_len = blob_len;
-    return 1;
-}
-
 // Handle copying of chunks for a block of data
 size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t block_size, uint8 **data, size_t *len)
 {
@@ -68,42 +42,36 @@ size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t bloc
 }
 
 // Process new UART data
-int uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet)
+size_t uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet)
 {
     // Handle CCSDS header
-    if (uart_packet_handle_block(&packet->header, 0, UART_PACKET_HEADER_LEN, &data, &len) > 0)
+    size_t remaining = uart_packet_handle_block(&packet->header, 0, UART_PACKET_HEADER_LEN, &data, &len);
+    if (remaining == 0)
     {
-        return UART_PACKET_WAIT_DATA;
+        // Blob length = CCSDS packet length + 1 - 6 (2nd header) - 2 (CRC-16)
+        size_t blob_len = packet->header.length - 7;
+        if (blob_len <= 0 || blob_len > UART_PACKET_BLOB_MAX_LEN)
+        {
+            uart_packet_reset();
+            return -1;
+        }
+        packet->blob_len = blob_len;
     }
-    else if (!uart_packet_verify_header(packet))
-    {
-        uart_packet_reset();
-        return UART_PACKET_ERROR;
-    }
+    else return remaining;
 
     // Handle image blob
-    if (uart_packet_handle_block(&packet->blob, UART_PACKET_HEADER_LEN, packet->blob_len, &data, &len) > 0)
-    {
-        return UART_PACKET_WAIT_DATA;
-    }
+    remaining = uart_packet_handle_block(&packet->blob, UART_PACKET_HEADER_LEN, packet->blob_len, &data, &len);
+    if (remaining > 0) return remaining;
 
     // Handle CRC
-    if (uart_packet_handle_block(&packet->crc, UART_PACKET_HEADER_LEN + packet->blob_len, 2, &data, &len) > 0)
-    {
-        return UART_PACKET_WAIT_DATA;
-    }
-
-    // Too much data?
-    if (len > 0)
-    {
-        // TODO: warning
-    }
+    remaining = uart_packet_handle_block(&packet->crc, UART_PACKET_HEADER_LEN + packet->blob_len, 2, &data, &len);
+    if (remaining > 0) return remaining;
 
     // Check CRC
     if(crc_16_finalize(current_crc) != packet->crc)
     {
         uart_packet_reset();
-        return UART_PACKET_ERROR;
+        return -1;
     }
-    else return UART_PACKET_SUCCESS;
+    else return 0;
 }

@@ -22,13 +22,6 @@ extern const uint8 *UART_REPLY_RETRANSMIT;
 extern const uint8 *UART_REPLY_HEARTBEAT;
 extern const uint8 *UART_REPLY_READY;
 
-// Packet parsing status
-typedef enum {
-    UART_PACKET_WAIT_DATA,
-    UART_PACKET_SUCCESS,
-    UART_PACKET_ERROR
-} uart_packet_status_t;
-
 // Reprogramming packet definition (ref. ICD)
 typedef struct {
     struct {
@@ -50,8 +43,7 @@ typedef struct {
 
 // Processing functions
 void uart_packet_reset();
-int uart_packet_verify_header(uart_packet_t *packet);
-int uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet);
+size_t uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet);
 size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t block_size, uint8 **data, size_t *len);
 
 #endif /* _uart_packets_H_ */

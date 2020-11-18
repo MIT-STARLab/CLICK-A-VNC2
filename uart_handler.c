@@ -16,7 +16,7 @@
 
 static VOS_HANDLE hUART;
 
-// Initialize UART parameters and packetizer
+// Initialize UART
 void uart_handler_init()
 {
     common_ioctl_cb_t uart_iocb;
@@ -48,6 +48,7 @@ void uart_handler_init()
 	vos_dev_ioctl(hUART, &uart_iocb);
 }
 
+// Listen to and process UART packets
 void uart_handler_listen()
 {
     char msg[24];
