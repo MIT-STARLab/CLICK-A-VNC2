@@ -54,7 +54,7 @@ int uart_packet_verify_header(uart_packet_t *packet)
 void uart_packet_update_values(unsigned char **data, size_t amount, size_t *len, size_t *pos)
 {
     current_length += amount;
-    current_crc = crc_16(current_crc, *data, amount);
+    current_crc = crc_16_update(current_crc, *data, amount);
     *data += amount;
     *pos += amount;
     *len -= amount;
@@ -111,7 +111,7 @@ int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *pac
     }
 
     // Check CRC
-    if(current_crc != packet->crc)
+    if(crc_16_finalize(current_crc) != packet->crc)
     {
         uart_packet_reset();
         return UART_PACKET_ERROR;

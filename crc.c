@@ -6,7 +6,7 @@
 */
 
 // Ref: BCT XB1 User Guide pg. 66
-unsigned short crc_16(unsigned short crc, unsigned char *data, short len)
+unsigned short crc_16_update(unsigned short crc, unsigned char *data, short len)
 {
     unsigned short byte = 0;
     unsigned char bit = 8, msb = 0;
@@ -23,4 +23,11 @@ unsigned short crc_16(unsigned short crc, unsigned char *data, short len)
         }
     }
     return crc;
+}
+
+// Ref: BCT XB1 User Guide pg. 66
+unsigned short crc_16_finalize(unsigned short crc)
+{
+    unsigned char push[] = {0, 0};
+    return crc_16_update(crc, push, 2);
 }

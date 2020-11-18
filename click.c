@@ -24,7 +24,6 @@ void uart_thread();
 
 /* FTDI:SDH Driver Handles */
 VOS_HANDLE hUSBHOST_1;   // USB Host Port 1
-VOS_HANDLE hUART;        // UART Interface Driver
 VOS_HANDLE hSPI_SLAVE_0; // SPISlave Port 0 Interface Driver
 VOS_HANDLE hSPI_SLAVE_1; // SPISlave Port 1 Interface Driver
 VOS_HANDLE hGPIO_PORT_A; // GPIO Port A Driver
@@ -84,7 +83,7 @@ void main(void)
 
     /* FTDI:SCT Thread Creation */
     tcbSPI = vos_create_thread_ex(20, 4096, spi_thread, "spi", 0);
-    tcbUART = vos_create_thread_ex(24, 1024, uart_thread, "uart", 0);
+    tcbUART = vos_create_thread_ex(24, 4096, uart_thread, "uart", 0);
     /* FTDI:ECT */
 
     vos_start_scheduler();
@@ -122,7 +121,6 @@ void open_drivers(void)
     /* Code for opening and closing drivers - move to required places in Application Threads */
     /* FTDI:SDA Driver Open */
     hUSBHOST_1 = vos_dev_open(VOS_DEV_USBHOST_1);
-    hUART = vos_dev_open(VOS_DEV_UART);
     hSPI_SLAVE_0 = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
     hSPI_SLAVE_1 = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     hGPIO_PORT_A = vos_dev_open(VOS_DEV_GPIO_PORT_A);
@@ -142,7 +140,6 @@ void close_drivers(void)
 {
     /* FTDI:SDB Driver Close */
     vos_dev_close(hUSBHOST_1);
-    vos_dev_close(hUART);
     vos_dev_close(hSPI_SLAVE_0);
     vos_dev_close(hSPI_SLAVE_1);
     vos_dev_close(hGPIO_PORT_A);

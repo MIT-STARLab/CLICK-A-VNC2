@@ -32,14 +32,13 @@ typedef enum {
 typedef struct {
     struct {
         unsigned short APID : 11;
-        unsigned short secondary_header : 1;
+        unsigned short secondary : 1;
         unsigned short type : 1;
         unsigned short version : 3;
         unsigned short sequence : 14;
         unsigned short grouping : 2;
         unsigned short length;
-        unsigned short ts_msb;
-        unsigned short ts_lsb;
+        unsigned int timestamp;
         unsigned char ts_sub;
         unsigned char reserved;
     } header;

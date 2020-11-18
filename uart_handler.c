@@ -7,11 +7,21 @@
 
 #include "uart_handler.h"
 #include "uart_packets.h"
+#include "vos.h"
+#include "UART.h"
+#include "string.h"
+#include "stdio.h"
+#include "click.h"
+#include "crc.h"
+
+static VOS_HANDLE hUART;
 
 // Initialize UART parameters and packetizer
 void uart_handler_init()
 {
     common_ioctl_cb_t uart_iocb;
+
+    hUART = vos_dev_open(VOS_DEV_UART);
 	
 	uart_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
 	uart_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED; 
@@ -40,6 +50,36 @@ void uart_handler_init()
 
 void uart_handler_listen()
 {
+    char msg[24];
+    unsigned char status, buffer[128];
+    unsigned short crc = 0, available = 0, read = 0;
+    common_ioctl_cb_t uart_iocb;
+    sprintf(msg, "Ready\r\n");
+    vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+
+    do
+    {
+        uart_iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
+		vos_dev_ioctl(hUART, &uart_iocb);
+        available = uart_iocb.get.queue_stat;
+        if (available > sizeof(buffer)) available = sizeof(buffer);
+        if (available > 0)
+        {
+            status = vos_dev_read(hUART, buffer, available, &read);
+            if (status != UART_OK)
+            {
+                sprintf(msg, "Error %d\r\n", status);
+                vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+            }
+            else
+            {
+                crc = crc_16_update(crc, buffer, (unsigned short) read);
+                sprintf(msg, "New CRC: 0x%X\r\n", crc_16_finalize(crc));
+                vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+            }
+        }
+
+    } while(1);
 
 }
 
