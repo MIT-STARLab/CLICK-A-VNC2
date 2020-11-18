@@ -6,9 +6,9 @@
 */
 
 // Ref: BCT XB1 User Guide pg. 66
-unsigned short crc_16(unsigned short crc, unsigned char *data, unsigned int len)
+unsigned short crc_16(unsigned short crc, unsigned char *data, short len)
 {
-    unsigned int byte = 0;
+    unsigned short byte = 0;
     unsigned char bit = 8, msb = 0;
     while (byte < len)
     {

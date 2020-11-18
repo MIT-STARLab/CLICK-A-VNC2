@@ -31,36 +31,27 @@ typedef enum {
 // Reprogramming packet definition (ref. ICD)
 typedef struct {
     struct {
-        union {
-            unsigned short raw;
-            struct {
-                unsigned short APID : 11;
-                unsigned short secondary_header : 1;
-                unsigned short type : 1;
-                unsigned short version : 3;
-            } field;
-        } preamble;
-        union {
-            unsigned short raw;
-            struct {
-                unsigned short count : 14;
-                unsigned short grouping : 2;
-            } field;
-        } sequence;
+        unsigned short APID : 11;
+        unsigned short secondary_header : 1;
+        unsigned short type : 1;
+        unsigned short version : 3;
+        unsigned short sequence : 14;
+        unsigned short grouping : 2;
         unsigned short length;
-        unsigned int timestamp;
-        unsigned char subsecond;
+        unsigned short ts_msb;
+        unsigned short ts_lsb;
+        unsigned char ts_sub;
         unsigned char reserved;
     } header;
     unsigned short crc;
-    unsigned int blob_len;
+    unsigned short blob_len;
     unsigned char blob[UART_PACKET_BLOB_MAX_LEN];
 } uart_packet_t;
 
 // Processing functions
 void uart_packet_reset();
-int uart_packet_verify_header();
-int uart_packet_process_data(unsigned char *data, unsigned int len, uart_packet_t *ptr);
-void uart_packet_update_values(unsigned char *data, unsigned int len);
+int uart_packet_verify_header(uart_packet_t *packet);
+int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *packet);
+void uart_packet_update_values(unsigned char *data, size_t len);
 
 #endif /* _uart_packets_H_ */

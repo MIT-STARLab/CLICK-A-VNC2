@@ -36,8 +36,6 @@ void uart_handler_init()
 	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_PARITY;
 	uart_iocb.set.param = UART_PARITY_NONE;
 	vos_dev_ioctl(hUART, &uart_iocb);
-
-    uart_packet_reset();
 }
 
 void uart_handler_listen()
