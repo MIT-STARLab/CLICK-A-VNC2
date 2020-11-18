@@ -6,6 +6,7 @@
 */
 
 #include "uart_packets.h"
+#include "crc.h"
 
 static uart_packet_t packet;
 static unsigned int current_length;
@@ -30,7 +31,7 @@ int uart_packet_verify_header()
     // Blob len = CCSDS packet length + 1 - 6 (2nd header) - 2 (CRC-16)
     int blob_len = packet.header.length - 7;
 
-    if (blob_len <= 0)
+    if (blob_len <= 0 || blob_len > UART_PACKET_BLOB_MAX_LEN)
     {
         // TODO: error
         return 0;
@@ -53,8 +54,8 @@ int uart_packet_verify_header()
 // Update running values
 void uart_packet_update_values(unsigned char *data, unsigned int len)
 {
+    current_crc = crc_16(current_crc, data, len);
     current_length += len;
-    // update crc
 }
 
 // Process new UART data
