@@ -9,13 +9,13 @@
 #include "crc.h"
 
 static size_t current_length = 0;
-static unsigned short current_crc = 0;
+static uint16 current_crc = 0;
 
 // Reprogramming flow control packets
-const unsigned char UART_REPLY_PROCESSING[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x15, 0, 0, 0, 1, 0xBB, 0x15};
-const unsigned char UART_REPLY_RETRANSMIT[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x30, 0, 0, 0, 1, 0xBB, 0xC6};
-const unsigned char UART_REPLY_HEARTBEAT[]  = {UART_PACKET_SYNC_MARKER, 0x02, 0x25, 0, 0, 0, 1, 0x5C, 0x8D};
-const unsigned char UART_REPLY_READY[]      = {UART_PACKET_SYNC_MARKER, 0x02, 0x20, 0, 0, 0, 1, 0xE4, 0x83};
+const uint8 UART_REPLY_PROCESSING[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x15, 0, 0, 0, 1, 0xBB, 0x15};
+const uint8 UART_REPLY_RETRANSMIT[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x30, 0, 0, 0, 1, 0xBB, 0xC6};
+const uint8 UART_REPLY_HEARTBEAT[]  = {UART_PACKET_SYNC_MARKER, 0x02, 0x25, 0, 0, 0, 1, 0x5C, 0x8D};
+const uint8 UART_REPLY_READY[]      = {UART_PACKET_SYNC_MARKER, 0x02, 0x20, 0, 0, 0, 1, 0xE4, 0x83};
 
 // Reset to zero position
 void uart_packet_reset()
@@ -24,7 +24,7 @@ void uart_packet_reset()
     current_crc = 0;
 }
 
-// Sanity check on packet header
+// Sanity checks on CCSDS header
 int uart_packet_verify_header(uart_packet_t *packet)
 {
     // Blob len = CCSDS packet length + 1 - 6 (2nd header) - 2 (CRC-16)
@@ -50,61 +50,50 @@ int uart_packet_verify_header(uart_packet_t *packet)
     return 1;
 }
 
-// Update running values
-void uart_packet_update_values(unsigned char **data, size_t amount, size_t *len, size_t *pos)
+// Handle copying of chunks for a block of data
+size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t block_size, uint8 **data, size_t *len)
 {
-    current_length += amount;
-    current_crc = crc_16_update(current_crc, *data, amount);
-    *data += amount;
-    *pos += amount;
-    *len -= amount;
+    size_t block_position = current_length - block_start;
+    size_t remaining = block_size - block_position;
+    size_t amount = (*len >= remaining) ? remaining : *len;
+    if (amount > 0)
+    {
+        memcpy((uint8*) block_ptr + block_position, *data, amount);
+        current_crc = crc_16_update(current_crc, *data, amount);
+        current_length += amount;
+        *data += amount;
+        *len -= amount;
+    }
+    return (remaining - amount);
 }
 
 // Process new UART data
-int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *packet)
+int uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet)
 {
-    // Take care of header parsing
-    size_t position = current_length;
-    size_t remaining = UART_PACKET_HEADER_LEN - position;
-    size_t amount = (len >= remaining) ? remaining : len;
-    if (amount > 0)
+    // Handle CCSDS header
+    if (uart_packet_handle_block(&packet->header, 0, UART_PACKET_HEADER_LEN, &data, &len) > 0)
     {
-        memcpy(&packet->header + position, data, amount);
-        uart_packet_update_values(&data, amount, &len, &position);
-        if (amount == remaining)
-        {
-            if (!uart_packet_verify_header(packet))
-            {
-                uart_packet_reset();
-                return UART_PACKET_ERROR;
-            }
-        }
-        else return UART_PACKET_WAIT_DATA;
+        return UART_PACKET_WAIT_DATA;
+    }
+    else if (!uart_packet_verify_header(packet))
+    {
+        uart_packet_reset();
+        return UART_PACKET_ERROR;
     }
 
-    // Handle image blob copy
-    position -= UART_PACKET_HEADER_LEN;
-    remaining = packet->blob_len - position;
-    amount = (len >= remaining) ? remaining : len;
-    if (amount > 0)
+    // Handle image blob
+    if (uart_packet_handle_block(&packet->blob, UART_PACKET_HEADER_LEN, packet->blob_len, &data, &len) > 0)
     {
-        memcpy(&packet->blob + position, data, amount);
-        uart_packet_update_values(&data, amount, &len, &position);
-        if (remaining > amount) return UART_PACKET_WAIT_DATA;
+        return UART_PACKET_WAIT_DATA;
     }
 
-    // Handle CRC copy
-    position -= packet->blob_len;
-    remaining = 2 - position;
-    amount = (len >= remaining) ? remaining : len;
-    if (amount > 0)
+    // Handle CRC
+    if (uart_packet_handle_block(&packet->crc, UART_PACKET_HEADER_LEN + packet->blob_len, 2, &data, &len) > 0)
     {
-        memcpy(&packet->crc + position, data, amount);
-        uart_packet_update_values(&data, amount, &len, &position);
-        if (remaining > amount) return UART_PACKET_WAIT_DATA;
+        return UART_PACKET_WAIT_DATA;
     }
 
-    // Too much data
+    // Too much data?
     if (len > 0)
     {
         // TODO: warning

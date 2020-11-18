@@ -51,11 +51,11 @@ void uart_handler_init()
 void uart_handler_listen()
 {
     char msg[24];
-    unsigned char status, buffer[128];
-    unsigned short crc = 0, available = 0, read = 0;
+    uint8 status, buffer[128];
+    uint16 crc = 0, available = 0, read = 0;
     common_ioctl_cb_t uart_iocb;
     sprintf(msg, "Ready\r\n");
-    vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+    vos_dev_write(hUART, (uint8*) msg, strlen(msg), NULL);
 
     do
     {
@@ -69,13 +69,13 @@ void uart_handler_listen()
             if (status != UART_OK)
             {
                 sprintf(msg, "Error %d\r\n", status);
-                vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+                vos_dev_write(hUART, (uint8*) msg, strlen(msg), NULL);
             }
             else
             {
-                crc = crc_16_update(crc, buffer, (unsigned short) read);
+                crc = crc_16_update(crc, buffer, (uint16) read);
                 sprintf(msg, "New CRC: 0x%X\r\n", crc_16_finalize(crc));
-                vos_dev_write(hUART, (unsigned char*) msg, strlen(msg), NULL);
+                vos_dev_write(hUART, (uint8*) msg, strlen(msg), NULL);
             }
         }
 

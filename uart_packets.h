@@ -8,6 +8,7 @@
 #ifndef _uart_packets_H_
 #define _uart_packets_H_
 
+#include "vos.h"
 #include "string.h"
 
 // Basic definitions
@@ -16,10 +17,10 @@
 #define UART_PACKET_SYNC_MARKER 0x35, 0x2E, 0xF8, 0x53
 
 // Reprogramming flow control packets
-extern const unsigned char *UART_REPLY_PROCESSING;
-extern const unsigned char *UART_REPLY_RETRANSMIT;
-extern const unsigned char *UART_REPLY_HEARTBEAT;
-extern const unsigned char *UART_REPLY_READY;
+extern const uint8 *UART_REPLY_PROCESSING;
+extern const uint8 *UART_REPLY_RETRANSMIT;
+extern const uint8 *UART_REPLY_HEARTBEAT;
+extern const uint8 *UART_REPLY_READY;
 
 // Packet parsing status
 typedef enum {
@@ -31,26 +32,26 @@ typedef enum {
 // Reprogramming packet definition (ref. ICD)
 typedef struct {
     struct {
-        unsigned short APID : 11;
-        unsigned short secondary : 1;
-        unsigned short type : 1;
-        unsigned short version : 3;
-        unsigned short sequence : 14;
-        unsigned short grouping : 2;
-        unsigned short length;
-        unsigned int timestamp;
-        unsigned char ts_sub;
-        unsigned char reserved;
+        uint16 APID : 11;
+        uint16 secondary : 1;
+        uint16 type : 1;
+        uint16 version : 3;
+        uint16 sequence : 14;
+        uint16 grouping : 2;
+        uint16 length;
+        uint32 timestamp;
+        uint8 ts_sub;
+        uint8 reserved;
     } header;
-    unsigned short crc;
-    unsigned short blob_len;
-    unsigned char blob[UART_PACKET_BLOB_MAX_LEN];
+    uint16 crc;
+    uint16 blob_len;
+    uint8 blob[UART_PACKET_BLOB_MAX_LEN];
 } uart_packet_t;
 
 // Processing functions
 void uart_packet_reset();
 int uart_packet_verify_header(uart_packet_t *packet);
-int uart_packet_process_data(unsigned char *data, size_t len, uart_packet_t *packet);
-void uart_packet_update_values(unsigned char **data, size_t amount, size_t *len, size_t *pos);
+int uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet);
+size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t block_size, uint8 **data, size_t *len);
 
 #endif /* _uart_packets_H_ */
