@@ -8,7 +8,10 @@
 #ifndef _crc_H_
 #define _crc_H_
 
-unsigned short crc_16_update(unsigned short crc, unsigned char *data, short len);
-unsigned short crc_16_finalize(unsigned short crc);
+#include "vos.h"
+#include "config.h"
+
+uint16 crc_16_update(uint16 crc, uint8 *data, size_t len);
+uint16 crc_16_finalize(uint16 crc);
 
 #endif /* _crc_H_ */

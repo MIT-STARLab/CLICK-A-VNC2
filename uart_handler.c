@@ -22,30 +22,30 @@ void uart_handler_init()
     common_ioctl_cb_t uart_iocb;
 
     hUART = vos_dev_open(VOS_DEV_UART);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-	uart_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED; 
-	vos_dev_ioctl(hUART, &uart_iocb);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
-	uart_iocb.set.uart_baud_rate = 921600;
-	vos_dev_ioctl(hUART, &uart_iocb);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
-	uart_iocb.set.param = UART_FLOW_NONE;
-	vos_dev_ioctl(hUART, &uart_iocb);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_DATA_BITS;
-	uart_iocb.set.param = UART_DATA_BITS_8;
-	vos_dev_ioctl(hUART, &uart_iocb);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_STOP_BITS;
-	uart_iocb.set.param = UART_STOP_BITS_1;
-	vos_dev_ioctl(hUART, &uart_iocb);
-	
-	uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_PARITY;
-	uart_iocb.set.param = UART_PARITY_NONE;
-	vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    uart_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED; 
+    vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
+    uart_iocb.set.uart_baud_rate = 921600;
+    vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
+    uart_iocb.set.param = UART_FLOW_NONE;
+    vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_DATA_BITS;
+    uart_iocb.set.param = UART_DATA_BITS_8;
+    vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_STOP_BITS;
+    uart_iocb.set.param = UART_STOP_BITS_1;
+    vos_dev_ioctl(hUART, &uart_iocb);
+    
+    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_PARITY;
+    uart_iocb.set.param = UART_PARITY_NONE;
+    vos_dev_ioctl(hUART, &uart_iocb);
 }
 
 // Listen to and process UART packets
@@ -61,7 +61,7 @@ void uart_handler_listen()
     do
     {
         uart_iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
-		vos_dev_ioctl(hUART, &uart_iocb);
+        vos_dev_ioctl(hUART, &uart_iocb);
         available = uart_iocb.get.queue_stat;
         if (available > sizeof(buffer)) available = sizeof(buffer);
         if (available > 0)

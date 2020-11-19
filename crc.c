@@ -5,11 +5,13 @@
 ** CRC functions
 */
 
+#include "crc.h"
+
 // Ref: BCT XB1 User Guide pg. 66
-unsigned short crc_16_update(unsigned short crc, unsigned char *data, short len)
+uint16 crc_16_update(uint16 crc, uint8 *data, size_t len)
 {
-    unsigned short byte = 0;
-    unsigned char bit = 8, msb = 0;
+    uint16 byte = 0;
+    uint8 bit = 8, msb = 0;
     while (byte < len)
     {
         msb = crc >> 15;
@@ -26,8 +28,8 @@ unsigned short crc_16_update(unsigned short crc, unsigned char *data, short len)
 }
 
 // Ref: BCT XB1 User Guide pg. 66
-unsigned short crc_16_finalize(unsigned short crc)
+uint16 crc_16_finalize(uint16 crc)
 {
-    unsigned char push[] = {0, 0};
+    uint8 push[] = {0, 0};
     return crc_16_update(crc, push, 2);
 }

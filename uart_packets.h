@@ -44,6 +44,5 @@ typedef struct {
 // Processing functions
 void uart_packet_reset();
 size_t uart_packet_process_data(uint8 *data, size_t len, uart_packet_t *packet);
-size_t uart_packet_handle_block(void *block_ptr, size_t block_start, size_t block_size, uint8 **data, size_t *len);
 
 #endif /* _uart_packets_H_ */
