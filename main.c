@@ -5,8 +5,9 @@
 ** Firmware entry point
 */
 
-#include "dev_conf.h"
 #include "packets.h"
+#include "dev_conf.h"
+#include "spi_handler.h"
 
 // Devices
 static VOS_HANDLE bus_spi;
@@ -68,10 +69,13 @@ void main()
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
     usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
 
-    // Open drivers
+    // Open and configure drivers
     bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
     payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
+    dev_conf_spi(bus_spi);
+    dev_conf_spi(payload_spi);
+    dev_conf_uart(uart);
 
     // Start threads
     vos_create_thread_ex(20, 128, bus_read, "bus_read", 0);

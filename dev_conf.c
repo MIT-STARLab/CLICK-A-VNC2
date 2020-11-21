@@ -67,4 +67,8 @@ void dev_conf_uart(VOS_HANDLE uart)
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
     uart_iocb.set.param = UART_FLOW_NONE;
     vos_dev_ioctl(uart, &uart_iocb);
+
+    uart_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    uart_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
+    vos_dev_ioctl(uart, &uart_iocb);
 }

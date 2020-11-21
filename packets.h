@@ -2,7 +2,7 @@
 ** Filename: packets.h
 ** Author: Ondrej
 ** 
-** Packet definitions
+** Packet definitions and helpers
 */
 
 #ifndef _packets_H_
@@ -18,12 +18,13 @@
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
+#define PACKET_MAX_DATA (PACKET_TM_MAX_LEN - PACKET_HEADER_LEN - 4)
 
-// Reprogramming flow control packets
-extern const uint8 *UART_REPLY_PROCESSING;
-extern const uint8 *UART_REPLY_RETRANSMIT;
-extern const uint8 *UART_REPLY_HEARTBEAT;
-extern const uint8 *UART_REPLY_READY;
+// Pre-defined UART flow control packets
+extern const uint32 *UART_REPLY_PROCESSING;
+extern const uint32 *UART_REPLY_RETRANSMIT;
+extern const uint32 *UART_REPLY_HEARTBEAT;
+extern const uint32 *UART_REPLY_READY;
 
 // CCSDS header
 typedef struct {
@@ -35,5 +36,8 @@ typedef struct {
     uint16 grouping : 2;
     uint16 len;
 } packet_header_t;
+
+// Helper packet functions
+void packet_wait_for_sync(VOS_HANDLE dev);
 
 #endif /* _packets_H_ */
