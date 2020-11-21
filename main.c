@@ -6,9 +6,24 @@
 */
 
 #include "dev_conf.h"
+#include "packets.h"
 
-void spi_thread();
-void uart_thread();
+// Thread prototypes
+void bus_read();
+void bus_write();
+void payload_read();
+void payload_write();
+void uart_handler();
+
+// Read and write buffers
+uint8 bus_read_buf[PACKET_TC_MAX_LEN];
+uint8 bus_write_buf[PACKET_TM_MAX_LEN];
+uint8 payload_read_buf[PACKET_TM_MAX_LEN];
+uint8 payload_write_buf[PACKET_TC_MAX_LEN];
+uint8 uart_read_buf[PACKET_IMAGE_MAX_LEN];
+
+// Thread synchronization
+
 
 void main()
 {
@@ -21,13 +36,13 @@ void main()
     // Kernel & IO initialization
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
-    vos_set_idle_thread_tcb_size(512);
+    vos_set_idle_thread_tcb_size(128);
     dev_conf_iomux();
 
     // Driver basic configuration
-    uartContext.buffer_size = VOS_BUFFER_SIZE_128_BYTES;
-    spisContext0.buffer_size = VOS_BUFFER_SIZE_128_BYTES;
-    spisContext1.buffer_size = VOS_BUFFER_SIZE_128_BYTES;
+    uartContext.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    spisContext0.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    spisContext1.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     gpioContextA.port_identifier = GPIO_PORT_A;
     usbhostContext.if_count = 8;
     usbhostContext.ep_count = 16;
@@ -42,22 +57,20 @@ void main()
     usbhost_init(VOS_DEV_USBHOST_1, -1, &usbhostContext);
 
     // Start threads
-    vos_create_thread_ex(20, 4096, spi_thread, "spi", 0);
-    vos_create_thread_ex(24, 4096, uart_thread, "uart", 0);
+    vos_create_thread_ex(20, 128, bus_read, "bus_read", 0);
+    vos_create_thread_ex(20, 128, payload_write, "payload_write", 0);
     vos_start_scheduler();
 
     // Never reached
     for(;;);
 }
 
-void spi_thread()
+void bus_read()
 {
-    /* Thread code to be added here */
+
 }
 
-void uart_thread()
+void payload_write()
 {
-    /* Thread code to be added here */
-    uart_handler_init();
-    uart_handler_listen();
+
 }
