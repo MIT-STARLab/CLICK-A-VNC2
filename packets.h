@@ -10,15 +10,18 @@
 
 #include "vos.h"
 
-// ICD definitions
+// High-level definitions
 #define PACKET_SYNC_MARKER 0x352EF853
+#define PACKET_SYNC_LEN 4
 #define PACKET_HEADER_LEN 6
+#define PACKET_OVERHEAD (PACKET_SYNC_LEN + PACKET_HEADER_LEN)
 #define PACKET_TC_MAX_LEN 1024
 #define PACKET_TM_MAX_LEN 4100
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
-#define PACKET_MAX_DATA (PACKET_TM_MAX_LEN - PACKET_HEADER_LEN - 4)
+#define PACKET_MAX_DATA (PACKET_TM_MAX_LEN - PACKET_OVERHEAD)
+#define PACKET_ASSIGN_SYNC(buffer) ((uint32*) buffer)[0] = PACKET_SYNC_MARKER
 
 // Pre-defined UART flow control packets
 extern const uint32 *UART_REPLY_PROCESSING;

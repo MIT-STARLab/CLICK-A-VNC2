@@ -14,7 +14,7 @@
 void spi_read_handler(VOS_HANDLE spi,
                       uint8 *read_buf,
                       uint8 *write_buf,
-                      uint16 buf_size,
+                      uint16 max_data,
                       vos_mutex_t *read_lock,
                       vos_mutex_t *write_lock,
                       uint8 send_interrupt);
@@ -22,6 +22,7 @@ void spi_read_handler(VOS_HANDLE spi,
 // Handle writing
 void spi_write_handler(VOS_HANDLE spi,
                        uint8 *write_buf,
+                       uint16 max_data,
                        vos_mutex_t *read_lock,
                        vos_mutex_t *write_lock);
 
