@@ -6,13 +6,17 @@
 */
 
 #include "uart_handler.h"
-#include "uart_packets.h"
-#include "vos.h"
+#include "packets.h"
 #include "UART.h"
 #include "string.h"
 #include "stdio.h"
 #include "click.h"
 #include "crc.h"
+
+// const uint8 UART_REPLY_PROCESSING[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x15, 0, 0, 0, 1, 0xBB, 0x15};
+// const uint8 UART_REPLY_RETRANSMIT[] = {UART_PACKET_SYNC_MARKER, 0x02, 0x30, 0, 0, 0, 1, 0xBB, 0xC6};
+// const uint8 UART_REPLY_HEARTBEAT[]  = {UART_PACKET_SYNC_MARKER, 0x02, 0x25, 0, 0, 0, 1, 0x5C, 0x8D};
+// const uint8 UART_REPLY_READY[]      = {UART_PACKET_SYNC_MARKER, 0x02, 0x20, 0, 0, 0, 1, 0xE4, 0x83};
 
 static VOS_HANDLE hUART;
 
