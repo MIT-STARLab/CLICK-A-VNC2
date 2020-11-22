@@ -20,7 +20,7 @@ void spi_read_handler(VOS_HANDLE spi,
 {
     uint8 interrupt = 0;
     uint16 available = max_data;
-    packet_header_t *header = (packet_header_t*) read_buf + PACKET_SYNC_LEN;
+    packet_header_t *header = (packet_header_t*) (read_buf + PACKET_SYNC_LEN);
     PACKET_ASSIGN_SYNC(read_buf);
     for(;;)
     {
