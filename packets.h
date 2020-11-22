@@ -21,8 +21,7 @@
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
-#define PACKET_MAX_DATA (PACKET_TM_MAX_LEN - PACKET_OVERHEAD)
-#define PACKET_ASSIGN_SYNC(_b) *((uint32*) _b) = PACKET_SYNC_MARKER_LE
+#define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
 
 // Pre-defined UART flow control packets
 extern const uint32 *UART_REPLY_PROCESSING;

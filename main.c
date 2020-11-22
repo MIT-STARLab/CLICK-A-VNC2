@@ -9,6 +9,10 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 
+#define IDLE_STACK_SIZE 128
+#define READ_STACK_SIZE 384
+#define WRITE_STACK_SIZE 256
+
 // Devices
 static VOS_HANDLE bus_spi;
 static VOS_HANDLE payload_spi;
@@ -45,7 +49,7 @@ void main()
     // Kernel & IO initialization
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
-    vos_set_idle_thread_tcb_size(256);
+    vos_set_idle_thread_tcb_size(IDLE_STACK_SIZE);
     vos_init_mutex(&bus_read_lock, 0);
     vos_init_mutex(&bus_write_lock, 1);
     vos_init_mutex(&payload_read_lock, 0);
@@ -54,7 +58,9 @@ void main()
 
     // Driver basic configuration
     uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    spi0_conf.slavenumber = SPI_SLAVE_0;
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    spi1_conf.slavenumber = SPI_SLAVE_1;
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     gpio_conf.port_identifier = GPIO_PORT_A;
     usb_conf.if_count = 8;
@@ -81,10 +87,10 @@ void main()
     dev_conf_uart(uart);
 
     // Start threads
-    vos_create_thread_ex(20, 384, bus_read, "bus_read", 0);
-    // vos_create_thread_ex(20, 384, bus_write, "bus_write", 0);
-    // vos_create_thread_ex(20, 384, payload_read, "payload_read", 0);
-    // vos_create_thread_ex(20, 1024, payload_write, "payload_write", 0);
+    // vos_create_thread_ex(20, READ_STACK_SIZE, bus_read, "bus_read", 0);
+    // vos_create_thread_ex(20, WRITE_STACK_SIZE, bus_write, "bus_write", 0);
+    vos_create_thread_ex(20, READ_STACK_SIZE, payload_read, "payload_read", 0);
+    // vos_create_thread_ex(20, WRITE_STACK_SIZE, payload_write, "payload_write", 0);
     vos_start_scheduler();
 
     // Never reached

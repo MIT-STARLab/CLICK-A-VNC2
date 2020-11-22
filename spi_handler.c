@@ -21,13 +21,13 @@ void spi_read_handler(VOS_HANDLE spi,
     uint8 interrupt = 0;
     uint16 available = max_data;
     packet_header_t *header = (packet_header_t*) (read_buf + PACKET_SYNC_LEN);
-    PACKET_ASSIGN_SYNC(read_buf);
+    PACKET_ADD_SYNC(read_buf);
     for(;;)
     {
         packet_wait_for_sync(spi);
         vos_dev_read(spi, (uint8*) header, PACKET_HEADER_LEN, NULL);
         available = (header->len_msb << 8) | header->len_lsb;
-        if(available >= 0 && (available + 1) <= PACKET_MAX_DATA)
+        if(available >= 0)
         {
             available = (available + 1) > max_data ? max_data : (available + 1);
             vos_dev_read(spi, read_buf + PACKET_OVERHEAD, available, NULL);
@@ -56,7 +56,7 @@ void spi_write_handler(VOS_HANDLE spi,
                        vos_mutex_t *write_lock)
 {
     uint16 available = max_data;
-    packet_header_t *header = (packet_header_t*) write_buf + PACKET_SYNC_LEN;
+    packet_header_t *header = (packet_header_t*) (write_buf + PACKET_SYNC_LEN);
     for(;;)
     {
         vos_lock_mutex(write_lock);
