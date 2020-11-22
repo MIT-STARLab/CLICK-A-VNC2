@@ -26,9 +26,10 @@ void spi_read_handler(VOS_HANDLE spi,
     {
         packet_wait_for_sync(spi);
         vos_dev_read(spi, (uint8*) header, PACKET_HEADER_LEN, NULL);
-        if(header->len >= 0 && (header->len + 1) <= PACKET_MAX_DATA)
+        available = (header->len_msb << 8) | header->len_lsb;
+        if(available >= 0 && (available + 1) <= PACKET_MAX_DATA)
         {
-            available = (header->len + 1) > max_data ? max_data : (header->len + 1);
+            available = (available + 1) > max_data ? max_data : (available + 1);
             vos_dev_read(spi, read_buf + PACKET_OVERHEAD, available, NULL);
             VOS_ENTER_CRITICAL_SECTION
             if(vos_trylock_mutex(read_lock) == VOS_MUTEX_UNLOCKED)
@@ -60,7 +61,8 @@ void spi_write_handler(VOS_HANDLE spi,
     {
         vos_lock_mutex(write_lock);
         vos_lock_mutex(read_lock);
-        available = (header->len + 1) > max_data ? max_data : (header->len + 1);
+        available = (header->len_msb << 8) | header->len_lsb;
+        available = (available + 1) > max_data ? max_data : (available + 1);
         vos_dev_write(spi, write_buf, PACKET_OVERHEAD + available, NULL);
         vos_unlock_mutex(read_lock);
     }

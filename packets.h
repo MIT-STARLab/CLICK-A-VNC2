@@ -12,6 +12,7 @@
 
 // High-level definitions
 #define PACKET_SYNC_MARKER 0x352EF853
+#define PACKET_SYNC_MARKER_LE 0x53F82E35
 #define PACKET_SYNC_LEN 4
 #define PACKET_HEADER_LEN 6
 #define PACKET_OVERHEAD (PACKET_SYNC_LEN + PACKET_HEADER_LEN)
@@ -21,7 +22,7 @@
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
 #define PACKET_MAX_DATA (PACKET_TM_MAX_LEN - PACKET_OVERHEAD)
-#define PACKET_ASSIGN_SYNC(_b) *((uint32*) _b) = PACKET_SYNC_MARKER
+#define PACKET_ASSIGN_SYNC(_b) *((uint32*) _b) = PACKET_SYNC_MARKER_LE
 
 // Pre-defined UART flow control packets
 extern const uint32 *UART_REPLY_PROCESSING;
@@ -29,15 +30,18 @@ extern const uint32 *UART_REPLY_RETRANSMIT;
 extern const uint32 *UART_REPLY_HEARTBEAT;
 extern const uint32 *UART_REPLY_READY;
 
-// CCSDS header
+// CCSDS header in little endian
 typedef struct {
-    uint16 APID : 11;
-    uint16 secondary : 1;
-    uint16 type : 1;
-    uint16 version : 3;
-    uint16 sequence : 14;
-    uint16 grouping : 2;
-    uint16 len;
+    uint8 apid_msb : 3;
+    uint8 secondary : 1;
+    uint8 type : 1;
+    uint8 version : 3;
+    uint8 apid_lsb;
+    uint8 seq_msb : 6;
+    uint8 grouping : 2;
+    uint8 seq_lsb;
+    uint8 len_msb;
+    uint8 len_lsb;
 } packet_header_t;
 
 // Helper packet functions

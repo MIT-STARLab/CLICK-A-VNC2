@@ -45,7 +45,7 @@ void main()
     // Kernel & IO initialization
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
-    vos_set_idle_thread_tcb_size(128);
+    vos_set_idle_thread_tcb_size(256);
     vos_init_mutex(&bus_read_lock, 0);
     vos_init_mutex(&bus_write_lock, 1);
     vos_init_mutex(&payload_read_lock, 0);
@@ -67,7 +67,7 @@ void main()
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
-    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+    // usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
     vos_gpio_set_pin_mode(GPIO_A_2, 1);
     vos_gpio_set_pin_mode(GPIO_A_7, 1);
     vos_gpio_write_pin(GPIO_A_7, 1);
@@ -81,10 +81,10 @@ void main()
     dev_conf_uart(uart);
 
     // Start threads
-    vos_create_thread_ex(20, 128, bus_read, "bus_read", 0);
-    vos_create_thread_ex(20, 128, bus_write, "bus_write", 0);
-    vos_create_thread_ex(20, 128, payload_read, "payload_read", 0);
-    vos_create_thread_ex(20, 128, payload_write, "payload_write", 0);
+    vos_create_thread_ex(20, 384, bus_read, "bus_read", 0);
+    // vos_create_thread_ex(20, 384, bus_write, "bus_write", 0);
+    // vos_create_thread_ex(20, 384, payload_read, "payload_read", 0);
+    // vos_create_thread_ex(20, 1024, payload_write, "payload_write", 0);
     vos_start_scheduler();
 
     // Never reached
