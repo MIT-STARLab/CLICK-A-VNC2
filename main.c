@@ -1,5 +1,5 @@
 /*
-** Filename: click.c
+** Filename: main.c
 ** Author: Ondrej
 ** 
 ** Firmware entry point
@@ -9,14 +9,14 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 
-#define IDLE_STACK_SIZE 128
-#define READ_STACK_SIZE 384
-#define WRITE_STACK_SIZE 256
+#define IDLE_STACK 256
+#define SPI_READ_STACK 512
+#define SPI_WRITE_STACK 512
 
 // Devices
 static VOS_HANDLE bus_spi;
 static VOS_HANDLE payload_spi;
-static VOS_HANDLE uart;
+VOS_HANDLE uart;
 
 // Thread prototypes
 static void bus_read();
@@ -25,12 +25,10 @@ static void payload_read();
 static void payload_write();
 static void uart_handler();
 
-// Read and write buffers
-static uint8 bus_read_buf[PACKET_TC_MAX_LEN];
-static uint8 bus_write_buf[PACKET_TM_MAX_LEN];
-static uint8 payload_read_buf[PACKET_TM_MAX_LEN];
-static uint8 payload_write_buf[PACKET_TC_MAX_LEN];
-static uint8 uart_read_buf[PACKET_IMAGE_MAX_LEN];
+// Read buffers
+static uint8 bus_buf[PACKET_TC_MAX_LEN];
+static uint8 payload_buf[PACKET_TM_MAX_LEN];
+static uint8 uart_buf[PACKET_IMAGE_MAX_LEN];
 
 // Thread synchronization
 static vos_mutex_t bus_read_lock;
@@ -45,30 +43,35 @@ void main()
     spislave_context_t spi1_conf;
     gpio_context_t gpio_conf;
     usbhost_context_t usb_conf;
+
+    // Initialize packet buffers with sync markers
+    PACKET_ADD_SYNC(bus_buf);
+    PACKET_ADD_SYNC(payload_buf);
+    PACKET_ADD_SYNC(uart_buf);
     
-    // Kernel & IO initialization
+    // Kernel & IO init
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
-    vos_set_idle_thread_tcb_size(IDLE_STACK_SIZE);
-    vos_init_mutex(&bus_read_lock, 0);
-    vos_init_mutex(&bus_write_lock, 1);
-    vos_init_mutex(&payload_read_lock, 0);
-    vos_init_mutex(&payload_write_lock, 1);
+    vos_set_idle_thread_tcb_size(IDLE_STACK);
+    vos_init_mutex(&bus_read_lock, VOS_MUTEX_UNLOCKED);
+    vos_init_mutex(&bus_write_lock, VOS_MUTEX_LOCKED);
+    vos_init_mutex(&payload_read_lock, VOS_MUTEX_UNLOCKED);
+    vos_init_mutex(&payload_write_lock, VOS_MUTEX_LOCKED);
     dev_conf_iomux();
 
     // Driver basic configuration
-    uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     spi0_conf.slavenumber = SPI_SLAVE_0;
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     spi1_conf.slavenumber = SPI_SLAVE_1;
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     gpio_conf.port_identifier = GPIO_PORT_A;
     usb_conf.if_count = 8;
     usb_conf.ep_count = 16;
     usb_conf.xfer_count = 2;
     usb_conf.iso_xfer_count = 2;
 
-    // Driver initialization
+    // Driver init
     uart_init(VOS_DEV_UART, &uart_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
@@ -87,51 +90,49 @@ void main()
     dev_conf_uart(uart);
 
     // Start threads
-    // vos_create_thread_ex(20, READ_STACK_SIZE, bus_read, "bus_read", 0);
-    // vos_create_thread_ex(20, WRITE_STACK_SIZE, bus_write, "bus_write", 0);
-    vos_create_thread_ex(20, READ_STACK_SIZE, payload_read, "payload_read", 0);
-    // vos_create_thread_ex(20, WRITE_STACK_SIZE, payload_write, "payload_write", 0);
+    vos_create_thread_ex(20, SPI_READ_STACK, bus_read, "BURD", 0);
+    // vos_create_thread_ex(20, BUS_WRITE_STACK, bus_write, "BUWR", 0);
+    // vos_create_thread_ex(20, SPI_READ_STACK, payload_read, "PYRD", 0);
+    vos_create_thread_ex(20, SPI_WRITE_STACK, payload_write, "PYWR", 0);
     vos_start_scheduler();
 
     // Never reached
     for(;;);
 }
 
-void bus_read()
+static void bus_read()
 {
     spi_read_handler(bus_spi,
-                     bus_read_buf,
-                     payload_write_buf,
+                     bus_buf,
                      PACKET_TC_MAX_LEN - PACKET_OVERHEAD,
                      &bus_read_lock,
                      &bus_write_lock,
                      TRUE);
 }
 
-void bus_write()
+static void bus_write()
 {
     spi_write_handler(bus_spi,
-                      bus_write_buf,
+                      payload_buf,
                       PACKET_TM_MAX_LEN - PACKET_OVERHEAD,
                       &payload_read_lock,
                       &payload_write_lock);
 }
 
-void payload_read()
+static void payload_read()
 {
     spi_read_handler(payload_spi,
-                     payload_read_buf,
-                     bus_write_buf,
+                     payload_buf,
                      PACKET_TM_MAX_LEN - PACKET_OVERHEAD,
                      &payload_read_lock,
                      &payload_write_lock,
                      FALSE);
 }
 
-void payload_write()
+static void payload_write()
 {
     spi_write_handler(payload_spi,
-                      payload_write_buf,
+                      bus_buf,
                       PACKET_TC_MAX_LEN - PACKET_OVERHEAD,
                       &bus_read_lock,
                       &bus_write_lock);
