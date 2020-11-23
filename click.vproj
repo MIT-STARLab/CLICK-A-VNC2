@@ -504,6 +504,21 @@
 	</BuildList>
 	<LibraryFiles>
 		<fileDir></fileDir>
+		<filename>string.a</filename>
+		<fileType>10</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder>{00000000-0000-0000-0000-000000000009}</VirtualFolder>
+	</LibraryFiles>
+	<!-- <VirtualFolderGroup>
+		<Name>Runtime</Name>
+		<ID>{00000000-0000-0000-0000-000000000009}</ID>
+		<ParentID>{00000000-0000-0000-0000-000000000003}</ParentID>
+	</VirtualFolderGroup> -->
+	<BuildList>
+		<filename>string.a</filename>
+	</BuildList>
+	<LibraryFiles>
+		<fileDir></fileDir>
 		<filename>USB.h</filename>
 		<fileType>4</fileType>
 		<isFileDirty>false</isFileDirty>

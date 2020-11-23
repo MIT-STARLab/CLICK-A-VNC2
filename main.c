@@ -9,9 +9,10 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 
-#define IDLE_STACK 256
-#define SPI_READ_STACK 512
-#define SPI_WRITE_STACK 512
+#define IDLE_THREAD_STACK 256
+#define SPI_THREAD_STACK 1024
+#define UART_THREAD_STACK 512
+#define WD_THREAD_STACK 256
 
 // Devices
 static VOS_HANDLE bus_spi;
@@ -19,11 +20,10 @@ static VOS_HANDLE payload_spi;
 VOS_HANDLE uart;
 
 // Thread prototypes
-static void bus_read();
-static void bus_write();
-static void payload_read();
-static void payload_write();
-static void uart_handler();
+static void bus_to_payload();
+static void payload_to_bus();
+static void reprogramming();
+static void watchdog();
 
 // Read buffers
 static uint8 bus_buf[PACKET_TC_MAX_LEN];
@@ -31,10 +31,8 @@ static uint8 payload_buf[PACKET_TM_MAX_LEN];
 static uint8 uart_buf[PACKET_IMAGE_MAX_LEN];
 
 // Thread synchronization
-static vos_mutex_t bus_read_lock;
-static vos_mutex_t bus_write_lock;
-static vos_mutex_t payload_read_lock;
-static vos_mutex_t payload_write_lock;
+static vos_mutex_t interrupt_lock;
+static uint32 payload_tx_counter = 0;
 
 void main()
 {
@@ -52,11 +50,8 @@ void main()
     // Kernel & IO init
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
-    vos_set_idle_thread_tcb_size(IDLE_STACK);
-    vos_init_mutex(&bus_read_lock, VOS_MUTEX_UNLOCKED);
-    vos_init_mutex(&bus_write_lock, VOS_MUTEX_LOCKED);
-    vos_init_mutex(&payload_read_lock, VOS_MUTEX_UNLOCKED);
-    vos_init_mutex(&payload_write_lock, VOS_MUTEX_LOCKED);
+    vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
+    vos_init_mutex(&interrupt_lock, VOS_MUTEX_UNLOCKED);
     dev_conf_iomux();
 
     // Driver basic configuration
@@ -89,51 +84,53 @@ void main()
     dev_conf_spi(payload_spi);
     dev_conf_uart(uart);
 
-    // Start threads
-    vos_create_thread_ex(20, SPI_READ_STACK, bus_read, "BURD", 0);
-    // vos_create_thread_ex(20, BUS_WRITE_STACK, bus_write, "BUWR", 0);
-    // vos_create_thread_ex(20, SPI_READ_STACK, payload_read, "PYRD", 0);
-    vos_create_thread_ex(20, SPI_WRITE_STACK, payload_write, "PYWR", 0);
+    // Start threads, with increasing priority
+    vos_create_thread_ex(15, WD_THREAD_STACK, watchdog, "watchdog", 0);
+    vos_create_thread_ex(20, SPI_THREAD_STACK, bus_to_payload, "bus", 0);
+    vos_create_thread_ex(20, SPI_THREAD_STACK, payload_to_bus, "payload", 0);
+    vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
     vos_start_scheduler();
 
     // Never reached
     for(;;);
 }
 
-static void bus_read()
+// Bus SPI thread entry point
+static void bus_to_payload()
 {
-    spi_read_handler(bus_spi,
-                     bus_buf,
-                     PACKET_TC_MAX_LEN - PACKET_OVERHEAD,
-                     &bus_read_lock,
-                     &bus_write_lock,
-                     TRUE);
+    spi_pipe_conf_t config;
+    config.src = bus_spi;
+    config.dest = payload_spi;
+    config.buf = bus_buf;
+    config.max_data = PACKET_TC_MAX_LEN - PACKET_OVERHEAD;
+    config.interrupts = TRUE;
+    config.interrupt_lock = &interrupt_lock;
+    config.tx_counter = &payload_tx_counter;
+    spi_handler_pipe(&config);
 }
 
-static void bus_write()
+// Payload SPI thread entry point
+static void payload_to_bus()
 {
-    spi_write_handler(bus_spi,
-                      payload_buf,
-                      PACKET_TM_MAX_LEN - PACKET_OVERHEAD,
-                      &payload_read_lock,
-                      &payload_write_lock);
+    spi_pipe_conf_t config;
+    config.src = payload_spi;
+    config.dest = bus_spi;
+    config.buf = payload_buf;
+    config.max_data = PACKET_TM_MAX_LEN - PACKET_OVERHEAD;
+    config.interrupts = FALSE;
+    config.interrupt_lock = &interrupt_lock;
+    config.tx_counter = NULL;
+    spi_handler_pipe(&config);
 }
 
-static void payload_read()
+// Reprogramming thread entry point
+static void reprogramming()
 {
-    spi_read_handler(payload_spi,
-                     payload_buf,
-                     PACKET_TM_MAX_LEN - PACKET_OVERHEAD,
-                     &payload_read_lock,
-                     &payload_write_lock,
-                     FALSE);
+
 }
 
-static void payload_write()
+// Watchdog thread entry point
+static void watchdog()
 {
-    spi_write_handler(payload_spi,
-                      bus_buf,
-                      PACKET_TC_MAX_LEN - PACKET_OVERHEAD,
-                      &bus_read_lock,
-                      &bus_write_lock);
+
 }

@@ -10,19 +10,18 @@
 
 #include "vos.h"
 
-// Handle reading and signaling write thread
-void spi_read_handler(VOS_HANDLE spi,
-                      uint8 *buf,
-                      uint16 max_data,
-                      vos_mutex_t *read_lock,
-                      vos_mutex_t *write_lock,
-                      uint8 send_interrupt);
+// SPI pipe configuration
+typedef struct {
+    VOS_HANDLE src;
+    VOS_HANDLE dest;
+    uint8 *buf;
+    uint16 max_data;
+    uint8 interrupts;
+    vos_mutex_t *interrupt_lock;
+    uint32 *tx_counter;
+} spi_pipe_conf_t;
 
-// Handle writing
-void spi_write_handler(VOS_HANDLE spi,
-                       uint8 *buf,
-                       uint16 max_data,
-                       vos_mutex_t *read_lock,
-                       vos_mutex_t *write_lock);
+// Main SPI handler
+void spi_handler_pipe(spi_pipe_conf_t *conf);
 
 #endif /* _spi_handler_H_ */
