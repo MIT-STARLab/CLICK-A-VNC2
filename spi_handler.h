@@ -18,6 +18,7 @@ typedef struct {
     uint16 max_data;
     uint8 interrupts;
     vos_mutex_t *interrupt_lock;
+    uint8 *interrupt_bit;
     uint32 *tx_counter;
 } spi_pipe_conf_t;
 

@@ -32,6 +32,7 @@ static uint8 uart_buf[PACKET_IMAGE_MAX_LEN];
 
 // Thread synchronization
 static vos_mutex_t interrupt_lock;
+static uint8 interrupt_bit = 0;
 static uint32 payload_tx_counter = 0;
 
 void main()
@@ -53,6 +54,9 @@ void main()
     vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
     vos_init_mutex(&interrupt_lock, VOS_MUTEX_UNLOCKED);
     dev_conf_iomux();
+
+    // Watchdog init, bit 31 is highest counter
+    vos_wdt_enable(31);
 
     // Driver basic configuration
     spi0_conf.slavenumber = SPI_SLAVE_0;
@@ -105,6 +109,7 @@ static void bus_to_payload()
     config.max_data = PACKET_TC_MAX_LEN - PACKET_OVERHEAD;
     config.interrupts = TRUE;
     config.interrupt_lock = &interrupt_lock;
+    config.interrupt_bit = &interrupt_bit;
     config.tx_counter = &payload_tx_counter;
     spi_handler_pipe(&config);
 }
@@ -119,6 +124,7 @@ static void payload_to_bus()
     config.max_data = PACKET_TM_MAX_LEN - PACKET_OVERHEAD;
     config.interrupts = FALSE;
     config.interrupt_lock = &interrupt_lock;
+    config.interrupt_bit = NULL;
     config.tx_counter = NULL;
     spi_handler_pipe(&config);
 }
@@ -132,5 +138,22 @@ static void reprogramming()
 // Watchdog thread entry point
 static void watchdog()
 {
-
+    uint32 previous_counter = 0, count_on_same = 0;
+    for(;;)
+    {
+        vos_delay_msecs(1000);
+        VOS_ENTER_CRITICAL_SECTION
+        vos_wdt_clear();
+        if (payload_tx_counter != previous_counter)
+        {
+            previous_counter = payload_tx_counter;
+            count_on_same = 0;
+        }
+        else if(++count_on_same >= 2)
+        {
+            interrupt_bit ^= 1;
+            vos_gpio_write_pin(GPIO_A_7, interrupt_bit);
+        }
+        VOS_EXIT_CRITICAL_SECTION
+    }
 }

@@ -7,7 +7,6 @@
 
 #include "spi_handler.h"
 #include "packets.h"
-#include "MemMgmt.h"
 
 extern VOS_HANDLE uart;
 #include "string.h"
@@ -23,7 +22,6 @@ static void spi_uart_dbg(char *msg, uint16 number, uint8 thread)
 // Main SPI handler
 void spi_handler_pipe(spi_pipe_conf_t *conf)
 {
-    uint8 interrupt = 0;
     uint16 available = conf->max_data;
     packet_header_t *header = (packet_header_t*) (conf->buf + PACKET_SYNC_LEN);
     for(;;)
@@ -50,8 +48,10 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
             // Now, send interrupt to payload since bus read & write is finished
             if (conf->interrupts)
             {
-                interrupt ^= 1;
-                vos_gpio_write_pin(GPIO_A_7, interrupt);
+                VOS_ENTER_CRITICAL_SECTION
+                *(conf->interrupt_bit) ^= 1;
+                vos_gpio_write_pin(GPIO_A_7, *(conf->interrupt_bit));
+                VOS_EXIT_CRITICAL_SECTION
 
                 // Unlock the payload thread to be able to write again
                 vos_unlock_mutex(conf->interrupt_lock);
@@ -63,9 +63,11 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
             // If successfully written to payload, increase watchdog counter
             if (conf->interrupts)
             {
+                VOS_ENTER_CRITICAL_SECTION
                 *(conf->tx_counter)++;
+                VOS_EXIT_CRITICAL_SECTION
             }
-            // If successfully written to bus, signal the interrupt handling
+            // If successfully written to bus, signal interrupt handler
             else
             {
                 vos_unlock_mutex(conf->interrupt_lock);
