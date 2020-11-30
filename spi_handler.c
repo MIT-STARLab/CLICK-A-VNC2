@@ -24,6 +24,7 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
 {
     uint16 available = conf->max_data;
     packet_header_t *header = (packet_header_t*) (conf->buf + PACKET_SYNC_LEN);
+    spi_uart_dbg("Pipe started", 1, conf->interrupts);
     for(;;)
     {
         // Wait for sync marker
@@ -37,9 +38,12 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
         {
             // Avoid buffer overflow
             available = available > conf->max_data ? conf->max_data : available;
+            spi_uart_dbg("Packet", available + PACKET_OVERHEAD, conf->interrupts);
 
             // Read the rest of the packet
             vos_dev_read(conf->src, conf->buf + PACKET_OVERHEAD, available, NULL);
+
+            spi_uart_dbg("Read", available + PACKET_OVERHEAD, conf->interrupts);
 
             // If we received a bus packet, wait for bus to stop clocking data from payload
             // If we received a payload packet, signal the other thread that the bus write is pending 
@@ -49,8 +53,8 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
             if (conf->interrupts)
             {
                 VOS_ENTER_CRITICAL_SECTION
+                vos_gpio_write_pin(GPIO_A_2, *(conf->interrupt_bit));
                 *(conf->interrupt_bit) ^= 1;
-                vos_gpio_write_pin(GPIO_A_7, *(conf->interrupt_bit));
                 VOS_EXIT_CRITICAL_SECTION
 
                 // Unlock the payload thread to be able to write again
@@ -59,6 +63,8 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
 
             // Start blocking write on the opposite SPI bus
             vos_dev_write(conf->dest, conf->buf, PACKET_OVERHEAD + available, NULL);
+
+            spi_uart_dbg("Written", available + PACKET_OVERHEAD, conf->interrupts);
 
             // If successfully written to payload, increase watchdog counter
             if (conf->interrupts)

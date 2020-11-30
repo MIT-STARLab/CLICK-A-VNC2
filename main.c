@@ -78,6 +78,7 @@ void main()
     // usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
     vos_gpio_set_pin_mode(GPIO_A_2, 1);
     vos_gpio_set_pin_mode(GPIO_A_7, 1);
+    vos_gpio_write_pin(GPIO_A_2, 1);
     vos_gpio_write_pin(GPIO_A_7, 1);
 
     // Open and configure drivers
@@ -126,6 +127,7 @@ static void payload_to_bus()
     config.interrupt_lock = &interrupt_lock;
     config.interrupt_bit = NULL;
     config.tx_counter = NULL;
+    vos_delay_msecs(50);
     spi_handler_pipe(&config);
 }
 
@@ -144,16 +146,16 @@ static void watchdog()
         vos_delay_msecs(1000);
         VOS_ENTER_CRITICAL_SECTION
         vos_wdt_clear();
-        if (payload_tx_counter != previous_counter)
-        {
-            previous_counter = payload_tx_counter;
-            count_on_same = 0;
-        }
-        else if(++count_on_same >= 2)
-        {
-            interrupt_bit ^= 1;
-            vos_gpio_write_pin(GPIO_A_7, interrupt_bit);
-        }
+        // if (payload_tx_counter != previous_counter)
+        // {
+        //     previous_counter = payload_tx_counter;
+        //     count_on_same = 0;
+        // }
+        // else if(++count_on_same >= 2)
+        // {
+        //     interrupt_bit ^= 1;
+        //     vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
+        // }
         VOS_EXIT_CRITICAL_SECTION
     }
 }
