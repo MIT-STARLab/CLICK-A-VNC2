@@ -116,9 +116,9 @@ void spi_handler_payload()
     }
 }
 
-/* The SPI watchdog sends interrupts if payload did respond to primary interrupt
+/* The SPI watchdog sends interrupts if payload did not respond to primary interrupt
 ** (e.g. because RPI was still booting up...)
-** Runs at 1 Hz, and also clears the VNC2 internal watchdog counter */
+** Runs at 1 Hz and also clears the VNC2 internal watchdog counter */
 void spi_handler_watchdog()
 {
     uint32 previous_counter = 0, count_on_same = 0;

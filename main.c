@@ -68,8 +68,8 @@ void main()
 
     /* Configure priority and start threads */
     vos_create_thread_ex(20, SPI_THREAD_STACK, spi_handler_bus, "spi_bus", 0);
-    vos_create_thread_ex(20, SPI_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
-    vos_create_thread_ex(15, WD_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
+    vos_create_thread_ex(15, SPI_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
+    vos_create_thread_ex(10, WD_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
     // vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
     vos_start_scheduler();
 
