@@ -7,7 +7,7 @@
 
 #include "crc.h"
 
-// Ref: BCT XB1 User Guide pg. 66
+/* Ref: BCT XB1 User Guide pg. 66 */
 uint16 crc_16_update(uint16 crc, uint8 *data, size_t len)
 {
     uint16 byte = 0;
@@ -27,7 +27,7 @@ uint16 crc_16_update(uint16 crc, uint8 *data, size_t len)
     return crc;
 }
 
-// Ref: BCT XB1 User Guide pg. 66
+/* Ref: BCT XB1 User Guide pg. 66 */
 uint16 crc_16_finalize(uint16 crc)
 {
     uint8 push[] = {0, 0};

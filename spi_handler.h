@@ -10,20 +10,14 @@
 
 #include "vos.h"
 
-// SPI pipe configuration
-typedef struct {
-    VOS_HANDLE src;
-    VOS_HANDLE dest;
-    uint8 *buf;
-    uint16 max_data;
-    uint8 interrupts;
-    vos_mutex_t *interrupt_lock;
-    uint8 *interrupt_bit;
-    uint8 *write_flag;
-    uint32 *tx_counter;
-} spi_pipe_conf_t;
+/* Device globals */
+extern VOS_HANDLE bus_spi;
+extern VOS_HANDLE payload_spi;
+extern VOS_HANDLE uart;
 
-// Main SPI handler
-void spi_handler_pipe(spi_pipe_conf_t *conf);
+/* SPI handlers */
+void spi_handler_bus();
+void spi_handler_payload();
+void spi_handler_watchdog();
 
 #endif /* _spi_handler_H_ */

@@ -10,7 +10,7 @@
 
 #include "vos.h"
 
-// High-level definitions
+/* High-level definitions */
 #define PACKET_SYNC_MARKER 0x352EF853
 #define PACKET_SYNC_MARKER_LE 0x53F82E35
 #define PACKET_SYNC_LEN 4
@@ -23,13 +23,13 @@
 #define PACKET_UART_REPLY_LEN 12
 #define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
 
-// Pre-defined UART flow control packets
+/* Pre-defined UART flow control packets */
 extern const uint32 *UART_REPLY_PROCESSING;
 extern const uint32 *UART_REPLY_RETRANSMIT;
 extern const uint32 *UART_REPLY_HEARTBEAT;
 extern const uint32 *UART_REPLY_READY;
 
-// CCSDS header in little endian
+/* CCSDS header in little endian */
 typedef struct {
     uint8 apid_msb : 3;
     uint8 secondary : 1;
@@ -43,7 +43,7 @@ typedef struct {
     uint8 len_lsb;
 } packet_header_t;
 
-// Helper packet functions
-void packet_wait_for_sync(VOS_HANDLE dev);
+/* Helper packet functions */
+uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize);
 
 #endif /* _packets_H_ */

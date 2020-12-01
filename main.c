@@ -14,27 +14,9 @@
 #define UART_THREAD_STACK 512
 #define WD_THREAD_STACK 256
 
-// Devices
-static VOS_HANDLE bus_spi;
-static VOS_HANDLE payload_spi;
+VOS_HANDLE bus_spi;
+VOS_HANDLE payload_spi;
 VOS_HANDLE uart;
-
-// Thread prototypes
-static void bus_to_payload();
-static void payload_to_bus();
-static void reprogramming();
-static void watchdog();
-
-// Read buffers
-static uint8 bus_buf[PACKET_TC_MAX_LEN];
-static uint8 payload_buf[PACKET_TM_MAX_LEN];
-static uint8 uart_buf[PACKET_IMAGE_MAX_LEN];
-
-// Thread synchronization
-static vos_mutex_t interrupt_lock;
-static uint8 interrupt_bit = 0;
-static uint8 payload_write_pending = FALSE;
-static uint32 payload_tx_counter = 0;
 
 void main()
 {
@@ -43,23 +25,17 @@ void main()
     spislave_context_t spi1_conf;
     gpio_context_t gpio_conf;
     usbhost_context_t usb_conf;
-
-    // Initialize packet buffers with sync markers
-    PACKET_ADD_SYNC(bus_buf);
-    PACKET_ADD_SYNC(payload_buf);
-    PACKET_ADD_SYNC(uart_buf);
     
-    // Kernel & IO init
+    /* Kernel & IO init */
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
     vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
-    vos_init_mutex(&interrupt_lock, VOS_MUTEX_UNLOCKED);
     dev_conf_iomux();
 
-    // Watchdog init, bit 31 is highest counter
+    /* Watchdog init, bit 31 corresponds to 45 sec expiration */
     vos_wdt_enable(31);
 
-    // Driver basic configuration
+    /* Driver basic configuration */
     spi0_conf.slavenumber = SPI_SLAVE_0;
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     spi1_conf.slavenumber = SPI_SLAVE_1;
@@ -71,7 +47,7 @@ void main()
     usb_conf.xfer_count = 2;
     usb_conf.iso_xfer_count = 2;
 
-    // Driver init
+    /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
@@ -82,7 +58,7 @@ void main()
     vos_gpio_write_pin(GPIO_A_2, 0);
     vos_gpio_write_pin(GPIO_A_7, 0);
 
-    // Open and configure drivers
+    /* Open and configure drivers */
     bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
     payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
@@ -90,75 +66,13 @@ void main()
     dev_conf_spi(payload_spi);
     dev_conf_uart(uart);
 
-    // Start threads, with increasing priority
-    vos_create_thread_ex(15, WD_THREAD_STACK, watchdog, "watchdog", 0);
-    vos_create_thread_ex(20, SPI_THREAD_STACK, bus_to_payload, "bus", 0);
-    vos_create_thread_ex(20, SPI_THREAD_STACK, payload_to_bus, "payload", 0);
-    vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
+    /* Configure priority and start threads */
+    vos_create_thread_ex(20, SPI_THREAD_STACK, spi_handler_bus, "spi_bus", 0);
+    vos_create_thread_ex(20, SPI_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
+    vos_create_thread_ex(15, WD_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
+    // vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
     vos_start_scheduler();
 
-    // Never reached
+    /* Never reached */
     for(;;);
-}
-
-// Bus SPI thread entry point
-static void bus_to_payload()
-{
-    spi_pipe_conf_t config;
-    config.src = bus_spi;
-    config.dest = payload_spi;
-    config.buf = bus_buf;
-    config.max_data = PACKET_TC_MAX_LEN - PACKET_OVERHEAD;
-    config.interrupts = TRUE;
-    config.interrupt_lock = &interrupt_lock;
-    config.interrupt_bit = &interrupt_bit;
-    config.write_flag = &payload_write_pending;
-    config.tx_counter = &payload_tx_counter;
-    spi_handler_pipe(&config);
-}
-
-// Payload SPI thread entry point
-static void payload_to_bus()
-{
-    spi_pipe_conf_t config;
-    config.src = payload_spi;
-    config.dest = bus_spi;
-    config.buf = payload_buf;
-    config.max_data = PACKET_TM_MAX_LEN - PACKET_OVERHEAD;
-    config.interrupts = FALSE;
-    config.interrupt_lock = &interrupt_lock;
-    config.interrupt_bit = NULL;
-    config.write_flag = NULL;
-    config.tx_counter = NULL;
-    vos_delay_msecs(50);
-    spi_handler_pipe(&config);
-}
-
-// Reprogramming thread entry point
-static void reprogramming()
-{
-
-}
-
-// Watchdog thread entry point
-static void watchdog()
-{
-    uint32 previous_counter = 0, count_on_same = 0;
-    for(;;)
-    {
-        vos_delay_msecs(1000);
-        VOS_ENTER_CRITICAL_SECTION
-        vos_wdt_clear();
-        if (payload_tx_counter != previous_counter)
-        {
-            previous_counter = payload_tx_counter;
-            count_on_same = 0;
-        }
-        else if(payload_write_pending && ++count_on_same > 1)
-        {
-            interrupt_bit ^= 1;
-            vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
-        }
-        VOS_EXIT_CRITICAL_SECTION
-    }
 }

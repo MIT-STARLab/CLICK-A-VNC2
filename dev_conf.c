@@ -6,9 +6,8 @@
 */
 
 #include "dev_conf.h"
-#include "IOCTL.h"
 
-// Configure IOMUX connections
+/* Configure IOMUX connections */
 void dev_conf_iomux()
 {
     vos_iomux_define_input(15, IOMUX_IN_SPI_SLAVE_0_CLK);
@@ -25,26 +24,10 @@ void dev_conf_iomux()
     vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
 }
 
-// Configure SPI bus
+/* Configure SPI slave */
 void dev_conf_spi(VOS_HANDLE spi)
 {
     common_ioctl_cb_t spi_iocb;
-
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPHA;
-    spi_iocb.set.param = SPI_SLAVE_SCK_CPHA_0;
-    vos_dev_ioctl(spi, &spi_iocb);
-
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPOL;
-    spi_iocb.set.param = SPI_SLAVE_SCK_CPOL_0;
-    vos_dev_ioctl(spi, &spi_iocb);
-
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_DATA_ORDER;
-    spi_iocb.set.param = SPI_SLAVE_DATA_ORDER_MSB;
-    vos_dev_ioctl(spi, &spi_iocb);
-
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SET_ADDRESS;
-    spi_iocb.set.param = 0;
-    vos_dev_ioctl(spi, &spi_iocb);
 
     spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SET_MODE;
     spi_iocb.set.param = SPI_SLAVE_MODE_UNMANAGED;
@@ -55,7 +38,7 @@ void dev_conf_spi(VOS_HANDLE spi)
     vos_dev_ioctl(spi, &spi_iocb);
 }
 
-// Configure UART
+/* Configure UART */
 void dev_conf_uart(VOS_HANDLE uart)
 {
     common_ioctl_cb_t uart_iocb;
@@ -67,8 +50,34 @@ void dev_conf_uart(VOS_HANDLE uart)
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
     uart_iocb.set.param = UART_FLOW_NONE;
     vos_dev_ioctl(uart, &uart_iocb);
+}
 
-    // uart_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    // uart_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    // vos_dev_ioctl(uart, &uart_iocb);
+/* Configure USB host */
+void dev_conf_usb(VOS_HANDLE usb)
+{
+
+}
+
+/* Acquire exclusive DMA access for device
+** Significantly decreases overhead for read/write operations */
+void dev_dma_acquire(VOS_HANDLE dev)
+{
+    common_ioctl_cb_t iocb;
+    
+    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    iocb.set.param = DMA_ACQUIRE_AND_RETAIN;
+    vos_dev_ioctl(dev, &iocb);
+}
+
+/* Release exclusive DMA access for device */
+void dev_dma_release(VOS_HANDLE dev)
+{
+    common_ioctl_cb_t iocb;
+
+    iocb.ioctl_code = VOS_IOCTL_COMMON_DISABLE_DMA;
+    vos_dev_ioctl(dev, &iocb);
+
+    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
+    vos_dev_ioctl(dev, &iocb);
 }

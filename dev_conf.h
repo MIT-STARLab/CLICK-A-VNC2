@@ -20,10 +20,13 @@
 #include "UART.h"
 #include "GPIO.h"
 #include "USBHost.h"
+#include "IOCTL.h"
 
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi);
 void dev_conf_uart(VOS_HANDLE uart);
 void dev_conf_usb(VOS_HANDLE usb);
+void dev_dma_acquire(VOS_HANDLE dev);
+void dev_dma_release(VOS_HANDLE dev);
 
 #endif /* _dev_conf_H_ */

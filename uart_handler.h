@@ -10,7 +10,5 @@
 
 #include "vos.h"
 
-void uart_handler_listen(VOS_HANDLE uart);
-void uart_handler_reply();
 
 #endif /* _uart_handler_H_ */

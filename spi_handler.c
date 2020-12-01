@@ -7,79 +7,136 @@
 
 #include "spi_handler.h"
 #include "packets.h"
-
-extern VOS_HANDLE uart;
+#include "dev_conf.h"
 #include "string.h"
 #include "stdio.h"
 
-static void spi_uart_dbg(char *msg, uint16 number, uint8 thread)
+/* Private variables */
+static uint8 bus_buf[PACKET_TC_MAX_LEN];
+static uint8 payload_buf[PACKET_TM_MAX_LEN];
+static vos_mutex_t bus_write_busy;
+static vos_mutex_t payload_read_busy;
+static vos_mutex_t payload_read_block;
+static uint8 interrupt_bit = 0;
+static uint32 payload_tx_counter = 0;
+static uint8 payload_response_pending = FALSE;
+
+/* Debugging print */
+static void spi_uart_dbg(char *msg, uint16 number)
 {
     char buf[128];
-    sprintf(buf, "%s %s: %d\r\n", thread ? "[bus]" : "[payload]", msg, number);
+    sprintf(buf, "%s: %d 0x%X\r\n", msg, number, number);
     vos_dev_write(uart, (uint8*) buf, strlen(buf), NULL);
 }
 
-// Main SPI handler
-void spi_handler_pipe(spi_pipe_conf_t *conf)
+/* Bus to payload SPI handler */
+void spi_handler_bus()
 {
-    uint16 available = conf->max_data;
-    packet_header_t *header = (packet_header_t*) (conf->buf + PACKET_SYNC_LEN);
-    spi_uart_dbg("Pipe started", 1, conf->interrupts);
+    uint16 packet_len = 0, crc = 0;
+    PACKET_ADD_SYNC(bus_buf);
+    vos_init_mutex(&bus_write_busy, VOS_MUTEX_UNLOCKED);
+    dev_dma_acquire(bus_spi);
+
     for(;;)
     {
-        // Wait for sync marker
-        packet_wait_for_sync(conf->src);
-
-        // Read packet length from header
-        vos_dev_read(conf->src, (uint8*) header, PACKET_HEADER_LEN, NULL);
-
-        available = ((header->len_msb << 8) | header->len_lsb) + 1;
-        if(available > 1)
+        /* Wait for packet from bus */
+        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN)))
         {
-            // Avoid buffer overflow
-            available = available > conf->max_data ? conf->max_data : available;
-            spi_uart_dbg("Packet", available + PACKET_OVERHEAD, conf->interrupts);
+            crc = (bus_buf[packet_len - 2] << 8) | bus_buf[packet_len - 1];
+            spi_uart_dbg("[bus] packet with crc", crc);
 
-            // Read the rest of the packet
-            vos_dev_read(conf->src, conf->buf + PACKET_OVERHEAD, available, NULL);
+            /* Wait for a bus write operation finish on other thread (if any) */
+            vos_lock_mutex(&bus_write_busy);
 
-            spi_uart_dbg("Read", available + PACKET_OVERHEAD, conf->interrupts);
+            /* Switch DMA to payload SPI */
+            dev_dma_release(bus_spi);
+            dev_dma_acquire(payload_spi);
 
-            // If we received a bus packet, wait for bus to stop clocking data from payload
-            // If we received a payload packet, signal the other thread that the bus write is pending 
-            vos_lock_mutex(conf->interrupt_lock);
+            /* Unblock a payload read operation on other thread */
+            vos_unlock_mutex(&payload_read_block);
+            vos_unlock_mutex(&payload_read_busy);
 
-            // Now, send interrupt to payload since bus read & write is finished
-            if (conf->interrupts)
-            {
-                VOS_ENTER_CRITICAL_SECTION
-                *(conf->write_flag) = TRUE;
-                *(conf->interrupt_bit) = *(conf->interrupt_bit) ^ 1;
-                vos_gpio_write_pin(GPIO_A_2, *(conf->interrupt_bit));
-                VOS_EXIT_CRITICAL_SECTION
+            /* Begin payload write operation */
+            payload_response_pending = TRUE;
+            vos_dev_write(payload_spi, bus_buf, packet_len, NULL);
 
-                // Unlock the payload thread to be able to write again
-                vos_unlock_mutex(conf->interrupt_lock);
-            }
+            /* Wait for payload read to finish on other thread */
+            vos_lock_mutex(&payload_read_busy);
 
-            // Start blocking write on the opposite SPI bus
-            vos_dev_write(conf->dest, conf->buf, PACKET_OVERHEAD + available, NULL);
+            /* Update payload flags for watchdog thread */
+            payload_tx_counter++;
+            payload_response_pending = FALSE;
 
-            spi_uart_dbg("Written", available + PACKET_OVERHEAD, conf->interrupts);
+            /* Switch DMA back to bus SPI */
+            dev_dma_release(payload_spi);
+            dev_dma_acquire(bus_spi);
 
-            // If successfully written to payload, increase watchdog counter
-            if (conf->interrupts)
-            {
-                VOS_ENTER_CRITICAL_SECTION
-                *(conf->write_flag) = FALSE;
-                *(conf->tx_counter) = *(conf->tx_counter) + 1;
-                VOS_EXIT_CRITICAL_SECTION
-            }
-            // If successfully written to bus, signal interrupt handler
-            else
-            {
-                vos_unlock_mutex(conf->interrupt_lock);
-            }
+            /* Unblock a bus write operation on other thread */
+            vos_unlock_mutex(&bus_write_busy);
+
+            spi_uart_dbg("[bus] payload write success", packet_len);
         }
+    }
+}
+
+/* Payload to bus SPI handler */
+void spi_handler_payload()
+{
+    uint16 packet_len = 0, crc = 0;
+    PACKET_ADD_SYNC(payload_buf);
+    vos_init_mutex(&payload_read_busy, VOS_MUTEX_UNLOCKED);
+    vos_init_mutex(&payload_read_block, VOS_MUTEX_LOCKED);
+
+    for(;;)
+    {
+        /* Wait to be unblocked by bus thread */
+        vos_lock_mutex(&payload_read_block);
+        vos_lock_mutex(&payload_read_busy);
+
+        /* Signal payload that we are ready */
+        interrupt_bit ^= 1;
+        vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
+
+        /* Wait for packet from payload */
+        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN);
+        vos_unlock_mutex(&payload_read_busy);
+
+        /* If a valid packet is received, send it to bus */
+        if(packet_len)
+        {
+            crc = (payload_buf[packet_len - 2] << 8) | payload_buf[packet_len - 1];
+            spi_uart_dbg("[payload] packet with crc", crc);
+
+            vos_lock_mutex(&bus_write_busy);
+            vos_dev_write(bus_spi, payload_buf, packet_len, NULL);
+            vos_unlock_mutex(&bus_write_busy);
+
+            spi_uart_dbg("[payload] bus write success", packet_len);
+        }
+    }
+}
+
+/* The SPI watchdog sends interrupts if payload did respond to primary interrupt
+** (e.g. because RPI was still booting up...)
+** Runs at 1 Hz, and also clears the VNC2 internal watchdog counter */
+void spi_handler_watchdog()
+{
+    uint32 previous_counter = 0, count_on_same = 0;
+    for(;;)
+    {
+        vos_delay_msecs(1000);
+        VOS_ENTER_CRITICAL_SECTION
+        vos_wdt_clear();
+        if (payload_tx_counter != previous_counter)
+        {
+            previous_counter = payload_tx_counter;
+            count_on_same = 0;
+        }
+        else if(payload_response_pending && ++count_on_same > 1)
+        {
+            interrupt_bit ^= 1;
+            vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
+        }
+        VOS_EXIT_CRITICAL_SECTION
     }
 }

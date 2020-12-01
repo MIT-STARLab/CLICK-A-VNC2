@@ -11,14 +11,3 @@
 #include "string.h"
 #include "stdio.h"
 #include "crc.h"
-
-// Listen to and process UART packets
-void uart_handler_listen(VOS_HANDLE uart)
-{
-
-}
-
-void uart_handler_reply()
-{
-
-}
