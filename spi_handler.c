@@ -17,9 +17,9 @@ static uint8 payload_buf[PACKET_TM_MAX_LEN];
 static vos_mutex_t bus_write_busy;
 static vos_mutex_t payload_read_busy;
 static vos_mutex_t payload_read_block;
-static uint8 interrupt_bit = 0;
-static uint32 payload_tx_counter = 0;
-static uint8 payload_response_pending = FALSE;
+static volatile uint8 payload_response_pending = FALSE;
+static volatile uint32 payload_tx_counter = 0;
+static volatile uint8 interrupt_bit = 0;
 
 /* Debugging print */
 static void spi_uart_dbg(char *msg, uint16 number)
@@ -122,10 +122,13 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 previous_counter = 0, count_on_same = 0;
+    spi_uart_dbg("[wd] running", 1);
     for(;;)
     {
         vos_delay_msecs(1000);
+        #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
+        #endif
         vos_wdt_clear();
         if (payload_tx_counter != previous_counter)
         {
@@ -137,6 +140,8 @@ void spi_handler_watchdog()
             interrupt_bit ^= 1;
             vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
         }
+        #ifndef __INTELLISENSE__
         VOS_EXIT_CRITICAL_SECTION
+        #endif
     }
 }

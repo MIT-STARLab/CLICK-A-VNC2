@@ -9,10 +9,10 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 
-#define IDLE_THREAD_STACK 256
+#define IDLE_THREAD_STACK 512
 #define SPI_THREAD_STACK 1024
 #define UART_THREAD_STACK 512
-#define WD_THREAD_STACK 256
+#define WD_THREAD_STACK 1024
 
 VOS_HANDLE bus_spi;
 VOS_HANDLE payload_spi;

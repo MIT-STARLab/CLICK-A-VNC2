@@ -1,7 +1,7 @@
 <Project>
 	<Version>1.2</Version>
 	<ProjectName>click</ProjectName>
-	<ProjectLocation>D:\Dropbox (MIT)\CLICK\Software\Reprogramming\repo</ProjectLocation>
+	<ProjectLocation>D:\Dropbox (MIT)\CLICK\Software\VNC2L\repo</ProjectLocation>
 	<ProjectSolution>click</ProjectSolution>
 	<ProjectVersion>1.0</ProjectVersion>
 	<OutputDir></OutputDir>
@@ -62,7 +62,7 @@
 			<AdditionalOpts></AdditionalOpts>
 		</LinkerOptions>
 	</ReleaseMode>
-	<BuildMode>Debug</BuildMode>
+	<BuildMode>Release</BuildMode>
 	<AppWizard>
 		<Active>true</Active>
 		<Type>general</Type>
@@ -589,7 +589,8 @@
 		<fileType>4</fileType>
 		<isFileDirty>false</isFileDirty>
 		<VirtualFolder>{00000000-0000-0000-0000-000000000006}</VirtualFolder>
-	</LibraryFiles>	<Files>
+	</LibraryFiles>
+	<Files>
 		<filename>crc.h</filename>
 		<fileDir></fileDir>
 		<fileType>4</fileType>
@@ -698,5 +699,20 @@
 	</Files>
 	<BuildList>
 		<filename>uart_handler.c</filename>
-	</BuildList>
+	</BuildList>	<OpenFilesList>
+		<filename>spi_handler.c</filename>
+		<actvieTabIndex>0</actvieTabIndex>
+	</OpenFilesList>
+	<WatchVariableList>
+		<WatchVarName>payload_response_pending</WatchVarName>
+		<DisplayType>2</DisplayType>
+	</WatchVariableList>
+	<WatchVariableList>
+		<WatchVarName>payload_tx_counter</WatchVarName>
+		<DisplayType>2</DisplayType>
+	</WatchVariableList>
+	<WatchVariableList>
+		<WatchVarName>interrupt_bit</WatchVarName>
+		<DisplayType>2</DisplayType>
+	</WatchVariableList>
 </Project>
