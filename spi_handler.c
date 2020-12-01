@@ -53,8 +53,9 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
             if (conf->interrupts)
             {
                 VOS_ENTER_CRITICAL_SECTION
+                *(conf->write_flag) = TRUE;
+                *(conf->interrupt_bit) = *(conf->interrupt_bit) ^ 1;
                 vos_gpio_write_pin(GPIO_A_2, *(conf->interrupt_bit));
-                *(conf->interrupt_bit) ^= 1;
                 VOS_EXIT_CRITICAL_SECTION
 
                 // Unlock the payload thread to be able to write again
@@ -70,7 +71,8 @@ void spi_handler_pipe(spi_pipe_conf_t *conf)
             if (conf->interrupts)
             {
                 VOS_ENTER_CRITICAL_SECTION
-                *(conf->tx_counter)++;
+                *(conf->write_flag) = FALSE;
+                *(conf->tx_counter) = *(conf->tx_counter) + 1;
                 VOS_EXIT_CRITICAL_SECTION
             }
             // If successfully written to bus, signal interrupt handler
