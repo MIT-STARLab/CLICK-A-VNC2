@@ -154,7 +154,7 @@ static void watchdog()
             previous_counter = payload_tx_counter;
             count_on_same = 0;
         }
-        else if(++count_on_same > 1 && payload_write_pending)
+        else if(payload_write_pending && ++count_on_same > 1)
         {
             interrupt_bit ^= 1;
             vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
