@@ -10,9 +10,9 @@
 #include "spi_handler.h"
 
 #define IDLE_THREAD_STACK 256
-#define SPI_THREAD_STACK 1024
+#define SPI_XFER_THREAD_STACK 1024
+#define SPI_HELPER_THREAD_STACK 512
 #define UART_THREAD_STACK 512
-#define WD_THREAD_STACK 512
 
 VOS_HANDLE bus_spi;
 VOS_HANDLE payload_spi;
@@ -67,9 +67,9 @@ void main()
     dev_conf_uart(uart);
 
     /* Configure priority and start threads */
-    vos_create_thread_ex(20, SPI_THREAD_STACK, spi_handler_bus, "spi_bus", 0);
-    vos_create_thread_ex(15, SPI_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
-    vos_create_thread_ex(10, WD_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
+    vos_create_thread_ex(25, SPI_XFER_THREAD_STACK, spi_handler_bus, "spi_bus", 0);
+    vos_create_thread_ex(20, SPI_XFER_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
+    vos_create_thread_ex(15, SPI_HELPER_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
     // vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
     vos_start_scheduler();
 

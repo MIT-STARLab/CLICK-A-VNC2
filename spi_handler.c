@@ -48,7 +48,7 @@ void spi_handler_bus()
             dev_dma_release(bus_spi);
             dev_dma_acquire(payload_spi);
 
-            /* Unblock a payload read operation on other thread */
+            /* Unblock payload read operation on other thread */
             vos_unlock_mutex(&payload_read_block);
             vos_unlock_mutex(&payload_read_busy);
 
@@ -69,8 +69,6 @@ void spi_handler_bus()
 
             /* Unblock a bus write operation on other thread */
             vos_unlock_mutex(&bus_write_busy);
-
-            // spi_uart_dbg("[bus] payload exchange success", packet_len);
         }
     }
 }
@@ -91,7 +89,7 @@ void spi_handler_payload()
         /* Signal payload that we are ready */
         interrupt_bit ^= 1;
         vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
-
+        
         /* Wait for packet from payload */
         packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_offset);
         vos_unlock_mutex(&payload_read_busy);
@@ -102,8 +100,6 @@ void spi_handler_payload()
             vos_lock_mutex(&bus_write_busy);
             vos_dev_write(bus_spi, payload_buf + packet_offset, packet_len, NULL);
             vos_unlock_mutex(&bus_write_busy);
-
-            // spi_uart_dbg("[payload] bus write success", packet_len);
         }
     }
 }

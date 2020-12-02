@@ -19,15 +19,16 @@ const uint32 UART_REPLY_READY[]      = { PACKET_SYNC_MARKER_LE, 0x2002, 0x83E401
 uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint16 *offset)
 {
     uint32 sync = 0;
-    uint8 *read_ptr = buf;
+    uint8 *read_ptr = buf, no_data_count = 0;
     uint16 avail = 1, read = 0, total_read = 0, packet_read = 0, packet_len = 0, crc = 0;
     packet_header_t *header = NULL;
     common_ioctl_cb_t iocb;
 
-    /* Begin; the first read will be blocking */
+    /* Begin read operations */
     do
     {
-        if (vos_dev_read(dev, read_ptr, avail, &read) == SPISLAVE_OK)
+        /* The first read will be blocking */
+        if (avail > 0 && vos_dev_read(dev, read_ptr, avail, &read) == SPISLAVE_OK)
         {
             total_read += read;
             while (read)
@@ -60,12 +61,19 @@ uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint16 *of
             }
         }
 
+        /* End if packet is already read successfully */
+        if (packet_len > 0 && packet_read >= packet_len) break;
+
         /* Check Rx queue status */
         iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
         vos_dev_ioctl(dev, &iocb);
         avail = iocb.get.queue_stat;
+
+        /* Give up if queue is repeatedly empty after a few queries */
+        if (avail == 0) no_data_count++;
+        else no_data_count = 0;
     }
-    while (avail > 0 && (total_read + avail) <= bufsize);
+    while (no_data_count < 5 && (total_read + avail) <= bufsize);
 
     /* Check if we got enough data, if not, return zero */
     if (packet_read < packet_len) packet_len = 0;
