@@ -59,7 +59,7 @@ void dev_conf_usb(VOS_HANDLE usb)
 }
 
 /* Acquire exclusive DMA access for device
-** Significantly decreases overhead for read/write operations */
+** Decreases overhead for read/write operations */
 void dev_dma_acquire(VOS_HANDLE dev)
 {
     common_ioctl_cb_t iocb;

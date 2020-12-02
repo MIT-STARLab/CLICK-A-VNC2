@@ -21,7 +21,6 @@
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
-// #define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
 #define PACKET_SYNC_VALID(sync) (sync == PACKET_SYNC_MARKER)
 #define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))
 

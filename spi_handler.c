@@ -22,10 +22,10 @@ static volatile uint32 payload_tx_counter = 0;
 static volatile uint8 interrupt_bit = 0;
 
 /* Debugging print */
-void spi_uart_dbg(char *msg, uint16 number)
+void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
 {
     char buf[128];
-    sprintf(buf, "%s: %d 0x%X\r\n", msg, number, number);
+    sprintf(buf, "%s: %d 0x%X\r\n", msg, number1, number2);
     vos_dev_write(uart, (uint8*) buf, strlen(buf), NULL);
 }
 
@@ -41,7 +41,7 @@ void spi_handler_bus()
         /* Wait for packet from bus */
         if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_offset)))
         {
-            /* Wait for a bus write operation finish on other thread (if any) */
+            /* Wait for a bus write operation to finish on other thread (if any) */
             vos_lock_mutex(&bus_write_busy);
 
             /* Switch DMA to payload SPI */
@@ -110,7 +110,7 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 previous_counter = 0, count_on_same = 0;
-    spi_uart_dbg("[wd] running", 1);
+    spi_uart_dbg("[wd] running", 0, 0);
     for(;;)
     {
         vos_delay_msecs(1000);
