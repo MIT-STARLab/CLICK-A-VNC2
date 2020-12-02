@@ -7,6 +7,7 @@
 
 #include "packets.h"
 #include "dev_conf.h"
+#include "spi_handler.h"
 
 /* Pre-defined UART flow control packets (little endian) */
 const uint32 UART_REPLY_PROCESSING[] = { PACKET_SYNC_MARKER_LE, 0x1502, 0x15BB0100 };
@@ -15,44 +16,46 @@ const uint32 UART_REPLY_HEARTBEAT[]  = { PACKET_SYNC_MARKER_LE, 0x2502, 0x8D5C01
 const uint32 UART_REPLY_READY[]      = { PACKET_SYNC_MARKER_LE, 0x2002, 0x83E40100 };
 
 /* Process an incoming packet with DMA already enabled */
-uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize)
+uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint16 *offset)
 {
-    uint8 res = 0;
     uint32 sync = 0;
-    uint16 available = 0, processed = 0, num_read = 0, packet_len = 0;
-    packet_header_t *header = (packet_header_t*) (buffer + PACKET_SYNC_LEN);
+    uint8 *read_ptr = buf;
+    uint16 avail = 1, read = 0, total_read = 0, packet_read = 0, packet_len = 0, crc = 0;
+    packet_header_t *header = NULL;
     common_ioctl_cb_t iocb;
 
-    /* Begin; the first read is blocking */
+    /* Begin; the first read will be blocking */
     do
     {
-        /* Waiting for sync marker */
-        if (sync != PACKET_SYNC_MARKER)
+        if (vos_dev_read(dev, read_ptr, avail, &read) == SPISLAVE_OK)
         {
-            res = vos_dev_read(dev, (uint8*) (&sync), 1, &num_read);
-            if (res == SPISLAVE_OK && num_read == 1)
+            total_read += read;
+            while (read)
             {
-                if (sync == PACKET_SYNC_MARKER)
+                /* Waiting for sync marker */
+                if (!PACKET_SYNC_VALID(sync))
                 {
-                    processed += PACKET_SYNC_LEN;
-                    buffer += PACKET_SYNC_LEN;
+                    read--;
+                    PACKET_SYNC_UPDATE(sync, read_ptr++);
+                    if (PACKET_SYNC_VALID(sync))
+                    {
+                        /* Save packet start offset */
+                        *offset = read_ptr - buf - PACKET_SYNC_LEN;
+                        header = (packet_header_t*) read_ptr;
+                        packet_read += PACKET_SYNC_LEN;
+                    }
                 }
-                else sync <<= 8;
-            }
-        }
-
-        /* Read all available data */
-        else
-        {
-            res = vos_dev_read(dev, buffer, available, &num_read);
-            if (res == SPISLAVE_OK)
-            {
-                processed += num_read;
-                buffer += num_read;
-                if (packet_len == 0 && processed >= PACKET_OVERHEAD)
+                /* Read all available packet data */
+                else
                 {
-                    packet_len = PACKET_OVERHEAD;
-                    packet_len += ((header->len_msb << 8) | header->len_lsb) + 1;
+                    packet_read += read;
+                    read_ptr += read;
+                    read = 0;
+                    if (packet_len == 0 && packet_read >= PACKET_OVERHEAD)
+                    {
+                        packet_len = PACKET_OVERHEAD;
+                        packet_len += ((header->len_msb << 8) | header->len_lsb) + 1;
+                    }
                 }
             }
         }
@@ -60,12 +63,22 @@ uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize)
         /* Check Rx queue status */
         iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
         vos_dev_ioctl(dev, &iocb);
-        available = iocb.get.queue_stat;
+        avail = iocb.get.queue_stat;
     }
-    while (available > 0 && (processed + available) <= bufsize);
+    while (avail > 0 && (total_read + avail) <= bufsize);
 
     /* Check if we got enough data, if not, return zero */
-    if (processed < packet_len) packet_len = 0;
+    if (packet_read < packet_len) packet_len = 0;
+
+    if (packet_len == 0)
+    {
+        spi_uart_dbg("[packet] noop, read", total_read);
+    }
+    else
+    {
+        crc = (buf[*offset + packet_len - 2] << 8) | buf[*offset + packet_len - 1];
+        spi_uart_dbg("[packet] done, crc", crc);
+    }
 
     return packet_len;
 }

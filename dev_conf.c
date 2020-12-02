@@ -33,9 +33,9 @@ void dev_conf_spi(VOS_HANDLE spi)
     spi_iocb.set.param = SPI_SLAVE_MODE_UNMANAGED;
     vos_dev_ioctl(spi, &spi_iocb);
 
-    // spi_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    // spi_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    // vos_dev_ioctl(spi, &spi_iocb);
+    spi_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    spi_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
+    vos_dev_ioctl(spi, &spi_iocb);
 }
 
 /* Configure UART */
@@ -77,7 +77,7 @@ void dev_dma_release(VOS_HANDLE dev)
     iocb.ioctl_code = VOS_IOCTL_COMMON_DISABLE_DMA;
     vos_dev_ioctl(dev, &iocb);
 
-    // iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    // iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    // vos_dev_ioctl(dev, &iocb);
+    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
+    vos_dev_ioctl(dev, &iocb);
 }

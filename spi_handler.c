@@ -22,7 +22,7 @@ static volatile uint32 payload_tx_counter = 0;
 static volatile uint8 interrupt_bit = 0;
 
 /* Debugging print */
-static void spi_uart_dbg(char *msg, uint16 number)
+void spi_uart_dbg(char *msg, uint16 number)
 {
     char buf[128];
     sprintf(buf, "%s: %d 0x%X\r\n", msg, number, number);
@@ -32,19 +32,15 @@ static void spi_uart_dbg(char *msg, uint16 number)
 /* Bus to payload SPI handler */
 void spi_handler_bus()
 {
-    uint16 packet_len = 0, crc = 0;
-    PACKET_ADD_SYNC(bus_buf);
+    uint16 packet_len = 0, packet_offset = 0;
     vos_init_mutex(&bus_write_busy, VOS_MUTEX_UNLOCKED);
     dev_dma_acquire(bus_spi);
 
     for(;;)
     {
         /* Wait for packet from bus */
-        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN)))
+        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_offset)))
         {
-            crc = (bus_buf[packet_len - 2] << 8) | bus_buf[packet_len - 1];
-            spi_uart_dbg("[bus] packet with crc", crc);
-
             /* Wait for a bus write operation finish on other thread (if any) */
             vos_lock_mutex(&bus_write_busy);
 
@@ -58,7 +54,7 @@ void spi_handler_bus()
 
             /* Begin payload write operation */
             payload_response_pending = TRUE;
-            vos_dev_write(payload_spi, bus_buf, packet_len, NULL);
+            vos_dev_write(payload_spi, bus_buf + packet_offset, packet_len, NULL);
 
             /* Wait for payload read to finish on other thread */
             vos_lock_mutex(&payload_read_busy);
@@ -74,7 +70,7 @@ void spi_handler_bus()
             /* Unblock a bus write operation on other thread */
             vos_unlock_mutex(&bus_write_busy);
 
-            spi_uart_dbg("[bus] payload write success", packet_len);
+            // spi_uart_dbg("[bus] payload exchange success", packet_len);
         }
     }
 }
@@ -82,8 +78,7 @@ void spi_handler_bus()
 /* Payload to bus SPI handler */
 void spi_handler_payload()
 {
-    uint16 packet_len = 0, crc = 0;
-    PACKET_ADD_SYNC(payload_buf);
+    uint16 packet_len = 0, packet_offset = 0;
     vos_init_mutex(&payload_read_busy, VOS_MUTEX_UNLOCKED);
     vos_init_mutex(&payload_read_block, VOS_MUTEX_LOCKED);
 
@@ -98,20 +93,17 @@ void spi_handler_payload()
         vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
 
         /* Wait for packet from payload */
-        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN);
+        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_offset);
         vos_unlock_mutex(&payload_read_busy);
 
         /* If a valid packet is received, send it to bus */
         if(packet_len)
         {
-            crc = (payload_buf[packet_len - 2] << 8) | payload_buf[packet_len - 1];
-            spi_uart_dbg("[payload] packet with crc", crc);
-
             vos_lock_mutex(&bus_write_busy);
-            vos_dev_write(bus_spi, payload_buf, packet_len, NULL);
+            vos_dev_write(bus_spi, payload_buf + packet_offset, packet_len, NULL);
             vos_unlock_mutex(&bus_write_busy);
 
-            spi_uart_dbg("[payload] bus write success", packet_len);
+            // spi_uart_dbg("[payload] bus write success", packet_len);
         }
     }
 }

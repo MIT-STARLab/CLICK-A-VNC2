@@ -21,7 +21,9 @@
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
-#define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
+// #define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
+#define PACKET_SYNC_VALID(sync) (sync == PACKET_SYNC_MARKER)
+#define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))
 
 /* Pre-defined UART flow control packets */
 extern const uint32 *UART_REPLY_PROCESSING;
@@ -44,6 +46,6 @@ typedef struct {
 } packet_header_t;
 
 /* Helper packet functions */
-uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize);
+uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize, uint16 *offset);
 
 #endif /* _packets_H_ */
