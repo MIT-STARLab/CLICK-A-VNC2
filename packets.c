@@ -73,7 +73,7 @@ uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint16 *of
         if (avail == 0) no_data_count++;
         else no_data_count = 0;
     }
-    while (no_data_count < 5 && (total_read + avail) <= bufsize);
+    while (no_data_count < 10 && (total_read + avail) <= bufsize);
 
     /* Check if we got enough data, if not, return zero */
     if (packet_read < packet_len) packet_len = 0;

@@ -23,7 +23,7 @@
 #include "IOCTL.h"
 
 void dev_conf_iomux();
-void dev_conf_spi(VOS_HANDLE spi);
+void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(VOS_HANDLE uart);
 void dev_conf_usb(VOS_HANDLE usb);
 void dev_dma_acquire(VOS_HANDLE dev);

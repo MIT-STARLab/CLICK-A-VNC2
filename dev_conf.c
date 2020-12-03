@@ -25,13 +25,21 @@ void dev_conf_iomux()
 }
 
 /* Configure SPI slave */
-void dev_conf_spi(VOS_HANDLE spi)
+void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
 {
     common_ioctl_cb_t spi_iocb;
 
     spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SET_MODE;
     spi_iocb.set.param = SPI_SLAVE_MODE_UNMANAGED;
     vos_dev_ioctl(spi, &spi_iocb);
+
+    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPHA;
+	spi_iocb.set.param = phase;
+	vos_dev_ioctl(spi, &spi_iocb);
+
+	spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPOL;
+	spi_iocb.set.param = polarity;
+	vos_dev_ioctl(spi, &spi_iocb);
 
     spi_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
     spi_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;

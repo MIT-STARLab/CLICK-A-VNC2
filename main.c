@@ -62,8 +62,8 @@ void main()
     bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
     payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
-    dev_conf_spi(bus_spi);
-    dev_conf_spi(payload_spi);
+    dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
+    dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     dev_conf_uart(uart);
 
     /* Configure priority and start threads */
