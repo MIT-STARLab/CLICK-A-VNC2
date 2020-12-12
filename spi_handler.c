@@ -19,7 +19,7 @@ static vos_mutex_t payload_read_busy;
 static vos_mutex_t payload_read_block;
 static volatile uint8 payload_response_pending = FALSE;
 static volatile uint32 payload_tx_counter = 0;
-static volatile uint8 interrupt_bit = 0;
+static volatile uint8 interrupt_bit = 0, test_bit = 0;
 
 /* Debugging print */
 void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
@@ -49,8 +49,8 @@ void spi_handler_bus()
             dev_dma_acquire(payload_spi);
 
             /* Unblock payload read operation on other thread */
+            vos_lock_mutex(&payload_read_busy);
             vos_unlock_mutex(&payload_read_block);
-            vos_unlock_mutex(&payload_read_busy);
 
             /* Begin payload write operation */
             payload_response_pending = TRUE;
@@ -58,6 +58,7 @@ void spi_handler_bus()
 
             /* Wait for payload read to finish on other thread */
             vos_lock_mutex(&payload_read_busy);
+            vos_unlock_mutex(&payload_read_busy);
 
             /* Update payload flags for watchdog thread */
             payload_tx_counter++;
@@ -84,12 +85,11 @@ void spi_handler_payload()
     {
         /* Wait to be unblocked by bus thread */
         vos_lock_mutex(&payload_read_block);
-        vos_lock_mutex(&payload_read_busy);
 
         /* Signal payload that we are ready */
         interrupt_bit ^= 1;
         vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
-        
+
         /* Wait for packet from payload */
         packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_offset);
         vos_unlock_mutex(&payload_read_busy);
@@ -98,6 +98,10 @@ void spi_handler_payload()
         if(packet_len)
         {
             vos_lock_mutex(&bus_write_busy);
+
+            test_bit ^= 1;
+            vos_gpio_write_pin(GPIO_A_7, test_bit);
+            
             vos_dev_write(bus_spi, payload_buf + packet_offset, packet_len, NULL);
             vos_unlock_mutex(&bus_write_busy);
         }
@@ -105,8 +109,7 @@ void spi_handler_payload()
 }
 
 /* The SPI watchdog sends interrupts if payload did not respond to primary interrupt
-** (e.g. because RPI was still booting up...)
-** Runs at 1 Hz and also clears the VNC2 internal watchdog counter */
+** (e.g. because RPI was still booting up...). Runs at 1 Hz. */
 void spi_handler_watchdog()
 {
     uint32 previous_counter = 0, count_on_same = 0;
@@ -117,7 +120,6 @@ void spi_handler_watchdog()
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
         #endif
-        vos_wdt_clear();
         if (payload_tx_counter != previous_counter)
         {
             previous_counter = payload_tx_counter;

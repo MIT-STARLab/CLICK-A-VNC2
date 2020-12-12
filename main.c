@@ -32,9 +32,6 @@ void main()
     vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
     dev_conf_iomux();
 
-    /* Watchdog init, bit 31 corresponds to 45 sec expiration */
-    vos_wdt_enable(31);
-
     /* Driver basic configuration */
     spi0_conf.slavenumber = SPI_SLAVE_0;
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
@@ -67,10 +64,10 @@ void main()
     dev_conf_uart(uart);
 
     /* Configure priority and start threads */
-    vos_create_thread_ex(25, SPI_XFER_THREAD_STACK, spi_handler_bus, "spi_bus", 0);
-    vos_create_thread_ex(20, SPI_XFER_THREAD_STACK, spi_handler_payload, "spi_payload", 0);
-    vos_create_thread_ex(15, SPI_HELPER_THREAD_STACK, spi_handler_watchdog, "spi_watchdog", 0);
-    // vos_create_thread_ex(25, UART_THREAD_STACK, reprogramming, "reprogramming", 0);
+    vos_create_thread(25, SPI_XFER_THREAD_STACK, spi_handler_bus, 0);
+    vos_create_thread(20, SPI_XFER_THREAD_STACK, spi_handler_payload, 0);
+    vos_create_thread(10, SPI_HELPER_THREAD_STACK, spi_handler_watchdog, 0);
+    // vos_create_thread(25, UART_THREAD_STACK, reprogramming, 0);
     vos_start_scheduler();
 
     /* Never reached */

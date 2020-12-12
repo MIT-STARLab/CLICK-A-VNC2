@@ -84,8 +84,4 @@ void dev_dma_release(VOS_HANDLE dev)
 
     iocb.ioctl_code = VOS_IOCTL_COMMON_DISABLE_DMA;
     vos_dev_ioctl(dev, &iocb);
-
-    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    vos_dev_ioctl(dev, &iocb);
 }

@@ -17,12 +17,13 @@
 #define PACKET_HEADER_LEN 6
 #define PACKET_OVERHEAD (PACKET_SYNC_LEN + PACKET_HEADER_LEN)
 #define PACKET_TC_MAX_LEN 1024
-#define PACKET_TM_MAX_LEN 4100
+#define PACKET_TM_MAX_LEN 4128
 #define PACKET_IMAGE_MAX_LEN 532
 #define PACKET_UART_HEADER_LEN 12
 #define PACKET_UART_REPLY_LEN 12
 #define PACKET_SYNC_VALID(sync) (sync == PACKET_SYNC_MARKER)
 #define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))
+#define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
 
 /* Pre-defined UART flow control packets */
 extern const uint32 *UART_REPLY_PROCESSING;
