@@ -78,25 +78,5 @@ uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint16 *of
     /* Check if we got enough data, if not, return zero */
     if (packet_read < packet_len) packet_len = 0;
 
-    if (packet_len == 0)
-    {
-        if (bufsize > 2000)
-        {
-            if (PACKET_SYNC_VALID(sync)) spi_uart_dbg("[payload] noop w sync", packet_read, total_read - packet_read);
-            // else spi_uart_dbg("[payload] noop no sync", total_read, 0);
-        }
-        else
-        {
-            if (PACKET_SYNC_VALID(sync)) spi_uart_dbg("[bus] noop w sync", packet_read, total_read - packet_read);
-            else spi_uart_dbg("[bus] noop no sync", total_read, 0);
-        }
-    }
-    else
-    {
-        // crc = (buf[*offset + packet_len - 2] << 8) | buf[*offset + packet_len - 1];
-        // if (bufsize > 2000) spi_uart_dbg("[payload] done len", packet_len, crc);
-        // else spi_uart_dbg("[bus] done len", packet_len, crc);
-    }
-
     return packet_len;
 }

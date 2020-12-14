@@ -21,14 +21,6 @@ static volatile uint8 payload_response_pending = FALSE;
 static volatile uint32 payload_tx_counter = 0;
 static volatile uint8 interrupt_bit = 0, test_bit = 0;
 
-/* Debugging print */
-void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
-{
-    char buf[128];
-    sprintf(buf, "%s: %d 0x%X\r\n", msg, number1, number2);
-    vos_dev_write(uart, (uint8*) buf, strlen(buf), NULL);
-}
-
 /* Bus to payload SPI handler */
 void spi_handler_bus()
 {
@@ -113,7 +105,6 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 previous_counter = 0, count_on_same = 0;
-    spi_uart_dbg("[wd] running", 0, 0);
     for(;;)
     {
         vos_delay_msecs(1000);

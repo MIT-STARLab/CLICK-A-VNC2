@@ -10,11 +10,6 @@
 
 #include "vos.h"
 
-/* Device globals */
-extern VOS_HANDLE bus_spi;
-extern VOS_HANDLE payload_spi;
-extern VOS_HANDLE uart;
-
 /* SPI handlers */
 void spi_handler_bus();
 void spi_handler_payload();

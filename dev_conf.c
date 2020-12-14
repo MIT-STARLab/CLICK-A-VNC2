@@ -52,7 +52,7 @@ void dev_conf_uart(VOS_HANDLE uart)
     common_ioctl_cb_t uart_iocb;
 
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
-    uart_iocb.set.uart_baud_rate = 115200;
+    uart_iocb.set.uart_baud_rate = 921600;
     vos_dev_ioctl(uart, &uart_iocb);
 
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;

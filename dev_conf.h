@@ -22,6 +22,12 @@
 #include "USBHost.h"
 #include "IOCTL.h"
 
+/* Device globals */
+extern VOS_HANDLE bus_spi;
+extern VOS_HANDLE payload_spi;
+extern VOS_HANDLE uart;
+
+/* Device configuration functions */
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(VOS_HANDLE uart);
