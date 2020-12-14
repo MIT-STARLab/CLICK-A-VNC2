@@ -62,7 +62,7 @@
 			<AdditionalOpts></AdditionalOpts>
 		</LinkerOptions>
 	</ReleaseMode>
-	<BuildMode>Release</BuildMode>
+	<BuildMode>Debug</BuildMode>
 	<AppWizard>
 		<Active>true</Active>
 		<Type>general</Type>
@@ -700,9 +700,14 @@
 	<BuildList>
 		<filename>uart_handler.c</filename>
 	</BuildList>	<OpenFilesList>
-		<filename>spi_handler.c</filename>
+		<filename>uart_handler.c</filename>
 		<actvieTabIndex>0</actvieTabIndex>
 	</OpenFilesList>
+	<BreakPointList>
+		<filename>uart_handler.c</filename>
+		<lineNo>24</lineNo>
+		<isEnabled>true</isEnabled>
+	</BreakPointList>
 	<WatchVariableList>
 		<WatchVarName>payload_response_pending</WatchVarName>
 		<DisplayType>2</DisplayType>

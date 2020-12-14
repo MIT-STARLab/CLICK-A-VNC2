@@ -34,5 +34,6 @@ void dev_conf_uart(VOS_HANDLE uart);
 void dev_conf_usb(VOS_HANDLE usb);
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
+uint16 dev_get_rx_avail(VOS_HANDLE dev);
 
 #endif /* _dev_conf_H_ */

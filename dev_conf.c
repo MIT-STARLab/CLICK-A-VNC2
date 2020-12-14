@@ -60,6 +60,15 @@ void dev_conf_uart(VOS_HANDLE uart)
     vos_dev_ioctl(uart, &uart_iocb);
 }
 
+/* Get number of bytes in Rx buffer */
+uint16 dev_get_rx_avail(VOS_HANDLE dev)
+{
+    common_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
+    vos_dev_ioctl(dev, &iocb);
+    return iocb.get.queue_stat;
+}
+
 /* Configure USB host */
 void dev_conf_usb(VOS_HANDLE usb)
 {
@@ -71,7 +80,6 @@ void dev_conf_usb(VOS_HANDLE usb)
 void dev_dma_acquire(VOS_HANDLE dev)
 {
     common_ioctl_cb_t iocb;
-    
     iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
     iocb.set.param = DMA_ACQUIRE_AND_RETAIN;
     vos_dev_ioctl(dev, &iocb);
@@ -81,7 +89,6 @@ void dev_dma_acquire(VOS_HANDLE dev)
 void dev_dma_release(VOS_HANDLE dev)
 {
     common_ioctl_cb_t iocb;
-
     iocb.ioctl_code = VOS_IOCTL_COMMON_DISABLE_DMA;
     vos_dev_ioctl(dev, &iocb);
 }
