@@ -47,12 +47,12 @@ void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
 }
 
 /* Configure UART */
-void dev_conf_uart(VOS_HANDLE uart)
+void dev_conf_uart(VOS_HANDLE uart, uint32 baud)
 {
     common_ioctl_cb_t uart_iocb;
 
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
-    uart_iocb.set.uart_baud_rate = 115200;
+    uart_iocb.set.uart_baud_rate = baud;
     vos_dev_ioctl(uart, &uart_iocb);
 
     uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
@@ -63,7 +63,7 @@ void dev_conf_uart(VOS_HANDLE uart)
 /* Configure USB host */
 void dev_conf_usb(VOS_HANDLE usb)
 {
-
+    
 }
 
 /* Acquire exclusive DMA access for device

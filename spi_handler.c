@@ -88,7 +88,7 @@ void spi_handler_payload()
 
         /* Signal payload that we are ready */
         interrupt_bit ^= 1;
-        vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
+        vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
 
         /* Wait for packet from payload */
         packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_offset);
@@ -98,10 +98,6 @@ void spi_handler_payload()
         if(packet_len)
         {
             vos_lock_mutex(&bus_write_busy);
-
-            test_bit ^= 1;
-            vos_gpio_write_pin(GPIO_A_7, test_bit);
-            
             vos_dev_write(bus_spi, payload_buf + packet_offset, packet_len, NULL);
             vos_unlock_mutex(&bus_write_busy);
         }
@@ -128,7 +124,7 @@ void spi_handler_watchdog()
         else if(payload_response_pending && ++count_on_same > 1)
         {
             interrupt_bit ^= 1;
-            vos_gpio_write_pin(GPIO_A_2, interrupt_bit);
+            vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
         }
         #ifndef __INTELLISENSE__
         VOS_EXIT_CRITICAL_SECTION

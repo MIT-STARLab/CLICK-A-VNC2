@@ -6,8 +6,10 @@
 */
 
 #include "uart_handler.h"
-#include "packets.h"
-#include "UART.h"
-#include "string.h"
-#include "stdio.h"
+#include "dev_conf.h"
 #include "crc.h"
+
+void uart_handler()
+{
+    
+}
