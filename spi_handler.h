@@ -10,6 +10,8 @@
 
 #include "vos.h"
 
+#define SPI_GUARD_LEN 4
+
 /* SPI handlers */
 void spi_handler_bus();
 void spi_handler_payload();

@@ -30,8 +30,12 @@ void spi_handler_bus()
 
     for(;;)
     {
-        /* Wait for packet from bus */
-        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_offset)))
+        /* Wait for packet from bus
+        ** Read the packet into the buffer with a small offset (SPI_GUARD_LEN)
+        ** Then, when transmitting to payload, the packet will start at this offset
+        ** This is to increase safety in case the first bytes send to payload are dropped */
+        if((packet_len = packet_process_dma(bus_spi, bus_buf + SPI_GUARD_LEN,
+            PACKET_TC_MAX_LEN - SPI_GUARD_LEN, &packet_offset)))
         {
             /* Wait for a bus write operation to finish on other thread (if any) */
             vos_lock_mutex(&bus_write_busy);

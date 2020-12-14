@@ -65,7 +65,7 @@ void main()
     dev_conf_uart(uart);
 
     /* Configure priority and start threads */
-    vos_create_thread(30, UART_THREAD_STACK, uart_handler, 0);
+    // vos_create_thread(30, UART_THREAD_STACK, uart_handler, 0);
     vos_create_thread(25, SPI_XFER_THREAD_STACK, spi_handler_bus, 0);
     vos_create_thread(20, SPI_XFER_THREAD_STACK, spi_handler_payload, 0);
     vos_create_thread(10, SPI_HELPER_THREAD_STACK, spi_handler_watchdog, 0);
