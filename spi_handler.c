@@ -32,14 +32,15 @@ void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
 /* Bus to payload SPI handler */
 void spi_handler_bus()
 {
-    uint16 packet_len = 0, packet_offset = 0;
+    uint16 packet_len = 0;
+    uint8 *packet_start = NULL;
     vos_init_mutex(&bus_write_busy, VOS_MUTEX_UNLOCKED);
     dev_dma_acquire(bus_spi);
 
     for(;;)
     {
         /* Wait for packet from bus */
-        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_offset)))
+        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_start)))
         {
             /* Wait for a bus write operation to finish on other thread (if any) */
             vos_lock_mutex(&bus_write_busy);
@@ -54,7 +55,7 @@ void spi_handler_bus()
 
             /* Begin payload write operation */
             payload_response_pending = TRUE;
-            vos_dev_write(payload_spi, bus_buf + packet_offset, packet_len, NULL);
+            vos_dev_write(payload_spi, packet_start, packet_len, NULL);
 
             /* Wait for payload read to finish on other thread */
             vos_lock_mutex(&payload_read_busy);
@@ -77,7 +78,8 @@ void spi_handler_bus()
 /* Payload to bus SPI handler */
 void spi_handler_payload()
 {
-    uint16 packet_len = 0, packet_offset = 0;
+    uint16 packet_len = 0;
+    uint8 *packet_start = NULL;
     vos_init_mutex(&payload_read_busy, VOS_MUTEX_UNLOCKED);
     vos_init_mutex(&payload_read_block, VOS_MUTEX_LOCKED);
 
@@ -91,14 +93,14 @@ void spi_handler_payload()
         vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
 
         /* Wait for packet from payload */
-        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_offset);
+        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_start);
         vos_unlock_mutex(&payload_read_busy);
 
         /* If a valid packet is received, send it to bus */
         if(packet_len)
         {
             vos_lock_mutex(&bus_write_busy);
-            vos_dev_write(bus_spi, payload_buf + packet_offset, packet_len, NULL);
+            vos_dev_write(bus_spi, packet_start, packet_len, NULL);
             vos_unlock_mutex(&bus_write_busy);
         }
     }

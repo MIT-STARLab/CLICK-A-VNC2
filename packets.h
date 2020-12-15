@@ -25,12 +25,6 @@
 #define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))
 #define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
 
-/* Pre-defined UART flow control packets */
-extern const uint32 *UART_REPLY_PROCESSING;
-extern const uint32 *UART_REPLY_RETRANSMIT;
-extern const uint32 *UART_REPLY_HEARTBEAT;
-extern const uint32 *UART_REPLY_READY;
-
 /* CCSDS header in little endian */
 typedef struct {
     uint8 apid_msb : 3;
@@ -45,7 +39,17 @@ typedef struct {
     uint8 len_lsb;
 } packet_header_t;
 
+/* Packet processing data */
+typedef struct {
+    uint32 sync;
+    uint16 avail;
+    uint16 total_read;
+    uint16 pkt_read;
+    uint16 pkt_len;
+    packet_header_t *header;
+} packet_proc_t;
+
 /* Helper packet functions */
-uint16 packet_process_dma(VOS_HANDLE dev, uint8 *buffer, uint16 bufsize, uint16 *offset);
+uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start);
 
 #endif /* _packets_H_ */

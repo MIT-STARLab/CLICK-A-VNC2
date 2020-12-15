@@ -66,12 +66,20 @@ void dev_conf_usb(VOS_HANDLE usb)
     
 }
 
+/* Check status of the Rx queue */
+uint16 dev_rx_avail(VOS_HANDLE dev)
+{
+    common_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_COMMON_GET_RX_QUEUE_STATUS;
+    vos_dev_ioctl(dev, &iocb);
+    return iocb.get.queue_stat;
+}
+
 /* Acquire exclusive DMA access for device
 ** Decreases overhead for read/write operations */
 void dev_dma_acquire(VOS_HANDLE dev)
 {
     common_ioctl_cb_t iocb;
-    
     iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
     iocb.set.param = DMA_ACQUIRE_AND_RETAIN;
     vos_dev_ioctl(dev, &iocb);
@@ -81,7 +89,6 @@ void dev_dma_acquire(VOS_HANDLE dev)
 void dev_dma_release(VOS_HANDLE dev)
 {
     common_ioctl_cb_t iocb;
-
     iocb.ioctl_code = VOS_IOCTL_COMMON_DISABLE_DMA;
     vos_dev_ioctl(dev, &iocb);
 }
