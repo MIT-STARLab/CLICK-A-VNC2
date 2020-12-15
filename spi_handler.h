@@ -10,6 +10,8 @@
 
 #include "vos.h"
 
+#define SPI_NO_DATA_LIMIT 5
+
 /* Device globals */
 extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;

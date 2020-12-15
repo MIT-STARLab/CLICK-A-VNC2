@@ -19,7 +19,7 @@ static vos_mutex_t payload_read_busy;
 static vos_mutex_t payload_read_block;
 static volatile uint8 payload_response_pending = FALSE;
 static volatile uint32 payload_tx_counter = 0;
-static volatile uint8 interrupt_bit = 0, test_bit = 0;
+static volatile uint8 interrupt_bit = 0;
 
 /* Debugging print */
 void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
@@ -40,7 +40,8 @@ void spi_handler_bus()
     for(;;)
     {
         /* Wait for packet from bus */
-        if((packet_len = packet_process_dma(bus_spi, bus_buf, PACKET_TC_MAX_LEN, &packet_start)))
+        if((packet_len = packet_process_blocking(bus_spi, bus_buf,
+            PACKET_TC_MAX_LEN, &packet_start, SPI_NO_DATA_LIMIT)))
         {
             /* Wait for a bus write operation to finish on other thread (if any) */
             vos_lock_mutex(&bus_write_busy);
@@ -93,7 +94,8 @@ void spi_handler_payload()
         vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
 
         /* Wait for packet from payload */
-        packet_len = packet_process_dma(payload_spi, payload_buf, PACKET_TM_MAX_LEN, &packet_start);
+        packet_len = packet_process_blocking(payload_spi, payload_buf,
+            PACKET_TM_MAX_LEN, &packet_start, SPI_NO_DATA_LIMIT);
         vos_unlock_mutex(&payload_read_busy);
 
         /* If a valid packet is received, send it to bus */
