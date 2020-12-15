@@ -116,15 +116,12 @@ void spi_handler_payload()
 ** (e.g. because RPI was still booting up...). Runs at 1 Hz. */
 void spi_handler_watchdog()
 {
-    tmr_ioctl_cb_t tmr_iocb;
-
     uint32 previous_counter = 0, count_on_same = 0;
     spi_uart_dbg("[wd] running", 0, 0);
-    dev_conf_timer_start(timer, 5000);
+    dev_timer_start(timer_wd, 1000);
     for(;;)
     {
-        spi_uart_dbg("[wd] timer status", dev_timer_status(timer), 0);
-        vos_delay_msecs(1000);
+        dev_timer_wait(timer_wd);
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
         #endif

@@ -67,7 +67,7 @@ void dev_conf_usb(VOS_HANDLE usb)
 }
 
 /* Initialize timer */
-void dev_conf_timer_init(VOS_HANDLE timer)
+void dev_conf_timer(VOS_HANDLE timer, uint8 mode)
 {
     tmr_ioctl_cb_t iocb;
 
@@ -80,12 +80,12 @@ void dev_conf_timer_init(VOS_HANDLE timer)
     vos_dev_ioctl(timer, &iocb);
 
     iocb.ioctl_code = VOS_IOCTL_TIMER_SET_MODE;
-    iocb.param = TIMER_MODE_SINGLE_SHOT;
+    iocb.param = mode;
     vos_dev_ioctl(timer, &iocb);
 }
 
 /* Start timer */
-void dev_conf_timer_start(VOS_HANDLE timer, uint16 timeout)
+void dev_timer_start(VOS_HANDLE timer, uint16 timeout)
 {
     tmr_ioctl_cb_t iocb;
 
@@ -97,6 +97,14 @@ void dev_conf_timer_start(VOS_HANDLE timer, uint16 timeout)
     vos_dev_ioctl(timer, &iocb);
 }
 
+/* Stop timer */
+void dev_timer_stop(VOS_HANDLE timer)
+{
+    tmr_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_TIMER_STOP;
+    vos_dev_ioctl(timer, &iocb);
+}
+
 /* Check timer status */
 uint16 dev_timer_status(VOS_HANDLE timer)
 {
@@ -104,6 +112,14 @@ uint16 dev_timer_status(VOS_HANDLE timer)
     iocb.ioctl_code = VOS_IOCTL_TIMER_GET_CURRENT_COUNT;
     vos_dev_ioctl(timer, &iocb);
     return iocb.param;
+}
+
+/* Wait for timer to expire */
+void dev_timer_wait(VOS_HANDLE timer)
+{
+    tmr_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_TIMER_WAIT_ON_COMPLETE;
+    vos_dev_ioctl(timer, &iocb);
 }
 
 /* Check status of the Rx queue */
