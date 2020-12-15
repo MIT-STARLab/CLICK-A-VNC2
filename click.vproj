@@ -442,18 +442,18 @@
 		<isFileDirty>false</isFileDirty>
 		<VirtualFolder>{00000000-0000-0000-0000-000000000004}</VirtualFolder>
 	</LibraryFiles>
-	<LibraryFiles>
-		<fileDir></fileDir>
-		<filename>USBHost.a</filename>
-		<fileType>10</fileType>
-		<isFileDirty>false</isFileDirty>
-		<VirtualFolder>{00000000-0000-0000-0000-000000000008}</VirtualFolder>
-	</LibraryFiles>
 	<VirtualFolderGroup>
 		<Name>Drivers</Name>
 		<ID>{00000000-0000-0000-0000-000000000008}</ID>
 		<ParentID>{00000000-0000-0000-0000-000000000003}</ParentID>
 	</VirtualFolderGroup>
+	<LibraryFiles>
+		<fileDir></fileDir>
+		<filename>USBHost.a</filename>
+		<fileType>10</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder>{00000000-0000-0000-0000-000000000008}</VirtualFolder>
+	</LibraryFiles>
 	<BuildList>
 		<filename>USBHost.a</filename>
 	</BuildList>
@@ -486,6 +486,16 @@
 	</LibraryFiles>
 	<BuildList>
 		<filename>GPIO.a</filename>
+	</BuildList>
+	<LibraryFiles>
+		<fileDir></fileDir>
+		<filename>Timers.a</filename>
+		<fileType>10</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder>{00000000-0000-0000-0000-000000000008}</VirtualFolder>
+	</LibraryFiles>
+	<BuildList>
+		<filename>Timers.a</filename>
 	</BuildList>
 	<LibraryFiles>
 		<fileDir></fileDir>
@@ -509,11 +519,6 @@
 		<isFileDirty>false</isFileDirty>
 		<VirtualFolder>{00000000-0000-0000-0000-000000000009}</VirtualFolder>
 	</LibraryFiles>
-	<!-- <VirtualFolderGroup>
-		<Name>Runtime</Name>
-		<ID>{00000000-0000-0000-0000-000000000009}</ID>
-		<ParentID>{00000000-0000-0000-0000-000000000003}</ParentID>
-	</VirtualFolderGroup> -->
 	<BuildList>
 		<filename>string.a</filename>
 	</BuildList>
@@ -567,6 +572,13 @@
 	<LibraryFiles>
 		<fileDir></fileDir>
 		<filename>GPIO.h</filename>
+		<fileType>4</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder>{00000000-0000-0000-0000-000000000005}</VirtualFolder>
+	</LibraryFiles>
+	<LibraryFiles>
+		<fileDir></fileDir>
+		<filename>Timers.h</filename>
 		<fileType>4</fileType>
 		<isFileDirty>false</isFileDirty>
 		<VirtualFolder>{00000000-0000-0000-0000-000000000005}</VirtualFolder>

@@ -48,6 +48,10 @@ void spi_handler_bus()
 
             /* Switch DMA to payload SPI */
             dev_dma_release(bus_spi);
+
+
+            // Reprogramming check here
+
             dev_dma_acquire(payload_spi);
 
             /* Unblock payload read operation on other thread */
@@ -112,10 +116,14 @@ void spi_handler_payload()
 ** (e.g. because RPI was still booting up...). Runs at 1 Hz. */
 void spi_handler_watchdog()
 {
+    tmr_ioctl_cb_t tmr_iocb;
+
     uint32 previous_counter = 0, count_on_same = 0;
     spi_uart_dbg("[wd] running", 0, 0);
+    dev_conf_timer_start(timer, 5000);
     for(;;)
     {
+        spi_uart_dbg("[wd] timer status", dev_timer_status(timer), 0);
         vos_delay_msecs(1000);
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION

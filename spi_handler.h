@@ -11,11 +11,14 @@
 #include "vos.h"
 
 #define SPI_NO_DATA_LIMIT 5
+#define SPI_REPROGRAM_APID 0x7EF
+#define SPI_REPROGRAM_LEN 2
 
 /* Device globals */
 extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
+extern VOS_HANDLE timer;
 
 /* SPI handlers */
 void spi_handler_bus();
