@@ -54,10 +54,10 @@ static uint16 packet_finalize(packet_proc_t *proc, uint8 **pkt_start)
 }
 
 /* Process an incoming packet in blocking mode (DMA must be enabled already) */
-uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 no_data_lmit)
+uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 no_data_limit)
 {
     packet_proc_t proc = { 0, 0, 0, 0, 0, 0 };
-    uint16 read = 0, no_data_count = 0;
+    uint16 read = 0, no_data_cnt = 0;
 
     /* We know at least one byte will be transferred */
     proc.avail = 1;
@@ -77,10 +77,10 @@ uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8
 
         /* Check Rx queue status, give up if it is repeatedly empty after a few queries */
         proc.avail = dev_rx_avail(dev);
-        if (proc.avail == 0) no_data_count++;
-        else no_data_count = 0;
+        if (proc.avail == 0) no_data_cnt++;
+        else no_data_cnt = 0;
     }
-    while (no_data_count < no_data_lmit && (proc.total_read + proc.avail) <= bufsize);
+    while (no_data_cnt < no_data_limit && (proc.total_read + proc.avail) <= bufsize);
 
     return packet_finalize(&proc, start);
 }
@@ -89,10 +89,13 @@ uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8
 uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 timeout)
 {
     packet_proc_t proc = { 0, 0, 0, 0, 0, 0 };
-    uint16 read = 0;
+    uint16 read = 0, prev_timer = 0, tmp_timer = 0, same_timer_cnt = 0;
+
+    /* Start timeout timer */
+    dev_timer_start(timer_pkt, timeout);
 
     /* Read until timeout is reached or buffer overflows */
-    while (timeout > 0 && (proc.total_read + proc.avail) <= bufsize)
+    while (same_timer_cnt <= 1 && (proc.total_read + proc.avail) <= bufsize)
     {
         if (proc.avail > 0 && vos_dev_read(dev, buf, proc.avail, &read) == 0)
         {
@@ -103,14 +106,19 @@ uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 
         /* Exit if packet is already read successfully */
         if (proc.pkt_len > 0 && proc.pkt_read >= proc.pkt_len) break;
 
-        /* Check Rx queue status, sleep if empty until timout is reached */
+        /* Check Rx queue and timer status */
         proc.avail = dev_rx_avail(dev);
-        if (proc.avail == 0)
-        {
-            vos_delay_msecs(1);
-            timeout--;
-        }
+        tmp_timer = dev_timer_status(timer_pkt);
+
+        /* If timer counter did not change, assume it expired
+        ** VNC2L resets the counter to the initial value on expiration... */
+        if (tmp_timer == prev_timer) same_timer_cnt++;
+        else same_timer_cnt = 0;
+        prev_timer = tmp_timer;
     }
+
+    /* Stop timer */
+    dev_timer_stop(timer_pkt);
 
     return packet_finalize(&proc, start);
 }

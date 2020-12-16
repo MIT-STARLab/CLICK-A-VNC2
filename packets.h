@@ -50,7 +50,7 @@ typedef struct {
 } packet_proc_t;
 
 /* Helper packet functions */
-uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 no_data_lmit);
+uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 no_data_limit);
 uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 timeout);
 
 #endif /* _packets_H_ */

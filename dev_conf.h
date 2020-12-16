@@ -33,7 +33,7 @@ extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
 extern VOS_HANDLE timer_wd;
-extern VOS_HANDLE timer_uart;
+extern VOS_HANDLE timer_pkt;
 
 /* Device initialization */
 void dev_conf_iomux();

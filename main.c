@@ -16,8 +16,8 @@
 VOS_HANDLE bus_spi;
 VOS_HANDLE payload_spi;
 VOS_HANDLE uart;
-VOS_HANDLE timer_uart;
 VOS_HANDLE timer_wd;
+VOS_HANDLE timer_pkt;
 
 void main()
 {
@@ -60,11 +60,11 @@ void main()
     payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
     timer_wd = vos_dev_open(VOS_DEV_TIMER_0);
-    timer_uart = vos_dev_open(VOS_DEV_TIMER_1);
+    timer_pkt = vos_dev_open(VOS_DEV_TIMER_1);
     dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
     dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     dev_conf_timer(timer_wd, TIMER_MODE_CONTINUOUS);
-    dev_conf_timer(timer_uart, TIMER_MODE_SINGLE_SHOT);
+    dev_conf_timer(timer_pkt, TIMER_MODE_SINGLE_SHOT);
     dev_conf_uart(uart, 115200);
 
     /* Configure priority and start threads */
