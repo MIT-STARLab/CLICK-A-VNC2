@@ -10,6 +10,6 @@
 
 #include "vos.h"
 
-
+void uart_run_sequence();
 
 #endif /* _uart_handler_H_ */

@@ -12,7 +12,7 @@
 
 #define SPI_NO_DATA_LIMIT 5
 #define SPI_REPROGRAM_APID 0x7EF
-#define SPI_REPROGRAM_LEN 2
+#define SPI_REPROGRAM_PKT_LEN 12
 
 /* SPI handlers */
 void spi_handler_bus();

@@ -2,7 +2,7 @@
 ** Filename: bootloader.h
 ** Author: Ondrej
 ** 
-** Initial bootcode for the RPi
+** Initial bootcode for the RPi, kept in VNC2L ROM
 ** Automatically generated file from bootcode.bin
 */
 
