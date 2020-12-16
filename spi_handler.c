@@ -23,27 +23,19 @@ static volatile uint8 payload_response_pending = FALSE;
 static volatile uint32 payload_tx_cnt = 0;
 static volatile uint8 interrupt_bit = 0;
 
-/* Debugging print */
-void spi_uart_dbg(char *msg, uint16 number1, uint16 number2)
-{
-    char buf[128];
-    sprintf(buf, "%s: %d 0x%X\r\n", msg, number1, number2);
-    vos_dev_write(uart, (uint8*) buf, strlen(buf), NULL);
-}
-
 /* Check if we received a reprogramming initialization command */
 static uint8 spi_is_reprog_command(uint8 *pkt, uint16 pkt_len)
 {
     packet_header_t *header = NULL;
     uint16 apid = 0, crc_pkt = 0, crc_calc = 0;
-    if (pkt_len == SPI_REPROGRAM_PKT_LEN)
+    if (pkt_len == SPI_REPROG_PKT_LEN)
     {
         /* Read header and check APID */
         pkt += PACKET_SYNC_LEN;
         pkt_len -= PACKET_SYNC_LEN;
         header = (packet_header_t*) pkt;
         apid = (header->apid_msb << 8) | header->apid_lsb;
-        if (apid == SPI_REPROGRAM_APID)
+        if (apid == SPI_REPROG_APID)
         {
             /* Check CRC */
             crc_calc = crc_16_update(0xFFFF, pkt, pkt_len - 2);
@@ -154,7 +146,6 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 prev_cnt = 0, count_on_same = 0;
-    spi_uart_dbg("[wd] running", 0, 0);
     dev_timer_start(timer_wd, 1000);
     for(;;)
     {

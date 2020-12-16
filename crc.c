@@ -47,9 +47,11 @@ static const uint16 crc_16_ccitt_table[256] =
 /* Update a CRC with new data. THE INITIAL VALUE MUST BE 0xFFFF */
 uint16 crc_16_update(uint16 crc, uint8 *data, uint16 len)
 {
-    while (len--)
+    uint16 i = 0, tmp = 0;
+    for (i = 0; i < len; i++)
     {
-        crc = (crc << 8) ^ crc_16_ccitt_table[(crc >> 8) ^ *(data++)];
+        tmp = (crc >> 8) ^ data[i];
+        crc = (crc << 8) ^ crc_16_ccitt_table[tmp];
     }
     return crc;
 }
