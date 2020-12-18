@@ -65,7 +65,7 @@ void main()
     dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     dev_conf_timer(timer_wd, TIMER_MODE_CONTINUOUS);
     dev_conf_timer(timer_pkt, TIMER_MODE_SINGLE_SHOT);
-    dev_conf_uart(uart, 115200);
+    dev_conf_uart(uart, 921600);
 
     /* Configure priority and start threads */
     vos_create_thread(20, SPI_XFER_THREAD_STACK, spi_handler_bus, 0);

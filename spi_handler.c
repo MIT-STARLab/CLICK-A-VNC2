@@ -9,9 +9,6 @@
 #include "uart_handler.h"
 #include "packets.h"
 #include "dev_conf.h"
-#include "crc.h"
-#include "string.h"
-#include "stdio.h"
 
 /* Private variables */
 static uint8 bus_buf[PACKET_TC_MAX_LEN];
@@ -26,25 +23,16 @@ static volatile uint8 interrupt_bit = 0;
 /* Check if we received a reprogramming initialization command */
 static uint8 spi_is_reprog_command(uint8 *pkt, uint16 pkt_len)
 {
+    uint16 apid = 0;
     packet_header_t *header = NULL;
-    uint16 apid = 0, crc_pkt = 0, crc_calc = 0;
     if (pkt_len == SPI_REPROG_PKT_LEN)
     {
         /* Read header and check APID */
-        pkt += PACKET_SYNC_LEN;
-        pkt_len -= PACKET_SYNC_LEN;
-        header = (packet_header_t*) pkt;
+        header = (packet_header_t*) (pkt + PACKET_SYNC_LEN);
         apid = (header->apid_msb << 8) | header->apid_lsb;
         if (apid == SPI_REPROG_APID)
         {
-            /* Check CRC */
-            crc_calc = crc_16_update(0xFFFF, pkt, pkt_len - 2);
-            pkt += PACKET_HEADER_LEN;
-            crc_pkt = (pkt[0] << 8) | pkt[1];
-            if (crc_pkt == crc_calc)
-            {
-                return TRUE;
-            }
+            return TRUE;
         }
     }
     return FALSE;

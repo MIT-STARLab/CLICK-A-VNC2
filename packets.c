@@ -7,6 +7,7 @@
 
 #include "packets.h"
 #include "dev_conf.h"
+#include "crc.h"
 
 /* Process new packet data */
 static void packet_process_data(uint8 *data, uint16 len, packet_proc_t *proc)
@@ -41,14 +42,27 @@ static void packet_process_data(uint8 *data, uint16 len, packet_proc_t *proc)
     }
 }
 
-/* Finalize packet processing */
+/* Check CRC and finalize packet processing */
 static uint16 packet_finalize(packet_proc_t *proc, uint8 **pkt_start)
 {
+    uint16 pkt_crc = 0;
+
     /* Check if we got enough data, if not, return zero */
     if (proc->pkt_read < proc->pkt_len) proc->pkt_len = 0;
 
-    /* If successful, save packet start pointer */
-    else if (proc->pkt_len > 0) *pkt_start = proc->header - PACKET_SYNC_LEN;
+    /* If successful so far, save packet start pointer and check CRC */
+    else if (proc->pkt_len > 0)
+    {
+        *pkt_start = (uint8*) proc->header - PACKET_SYNC_LEN;
+        pkt_crc = (*(*pkt_start + proc->pkt_len - 2) << 8) | *(*pkt_start + proc->pkt_len - 1);
+
+        /* If CRC check fails, return zero */
+        if (pkt_crc != crc_16_update(0xFFFF, (uint8*) proc->header, 
+            proc->pkt_len - PACKET_SYNC_LEN - 2))
+        {
+            proc->pkt_len = 0;
+        }
+    }
 
     return proc->pkt_len;
 }
