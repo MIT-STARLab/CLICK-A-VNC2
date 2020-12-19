@@ -18,6 +18,7 @@
 #define VOS_NUMBER_DEVICES 7
 
 #define GPIO_RPI_IRQ GPIO_A_2
+#define GPIO_RPI_EMMC GPIO_A_4
 #define GPIO_RPI_RESET GPIO_A_7
 
 #include "vos.h"
@@ -33,7 +34,7 @@ extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
 extern VOS_HANDLE timer_wd;
-extern VOS_HANDLE timer_pkt;
+extern VOS_HANDLE timer_uart;
 
 /* Device initialization */
 void dev_conf_iomux();

@@ -99,17 +99,17 @@ uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8
     return packet_finalize(&proc, start);
 }
 
-/* Process an incoming packet in timeout mode (DMA must be enabled already) */
-uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 timeout)
+/* Process an incoming packet in a dumb timeout mode (DMA must be enabled already) */
+uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint32 timeout_ms)
 {
     packet_proc_t proc = { 0, 0, 0, 0, 0, 0 };
-    uint16 read = 0, prev_timer = 0, tmp_timer = 0, same_timer_cnt = 0;
+    uint16 read = 0;
 
-    /* Start timeout timer */
-    dev_timer_start(timer_pkt, timeout);
+    /* 1 ms seems to be about 25 no-data loops */
+    timeout_ms *= 25;
 
     /* Read until timeout is reached or buffer overflows */
-    while (same_timer_cnt <= 1 && (proc.total_read + proc.avail) <= bufsize)
+    while (timeout_ms-- && (proc.total_read + proc.avail) <= bufsize)
     {
         if (proc.avail > 0 && vos_dev_read(dev, buf, proc.avail, &read) == 0)
         {
@@ -120,19 +120,9 @@ uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 
         /* Exit if packet is already read successfully */
         if (proc.pkt_len > 0 && proc.pkt_read >= proc.pkt_len) break;
 
-        /* Check Rx queue and timer status */
+        /* Check Rx queue status */
         proc.avail = dev_rx_avail(dev);
-        tmp_timer = dev_timer_status(timer_pkt);
-
-        /* If timer counter did not change, assume it expired
-        ** VNC2L resets the counter to the initial value on expiration... */
-        if (tmp_timer == prev_timer) same_timer_cnt++;
-        else same_timer_cnt = 0;
-        prev_timer = tmp_timer;
     }
-
-    /* Stop timer */
-    dev_timer_stop(timer_pkt);
 
     return packet_finalize(&proc, start);
 }

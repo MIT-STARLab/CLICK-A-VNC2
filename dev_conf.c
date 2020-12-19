@@ -22,6 +22,7 @@ void dev_conf_iomux()
     vos_iomux_define_input(32, IOMUX_IN_UART_RXD);
     vos_iomux_define_output(33, IOMUX_OUT_GPIO_PORT_A_2);
     vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
+    vos_iomux_define_output(45, IOMUX_OUT_GPIO_PORT_A_4);
 }
 
 /* Configure SPI slave */
