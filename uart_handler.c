@@ -9,7 +9,6 @@
 #include "usb_handler.h"
 #include "packets.h"
 #include "dev_conf.h"
-#include "crc.h"
 
 #include "string.h"
 #include "stdio.h"
@@ -56,10 +55,23 @@ void uart_run_sequence()
         /* Signal that we are processing */
         uart_reply(UART_REPLY_PROCESSING);
 
-        /* Drive EMMC_DISABLE low by setting Select high and reset RPi */
+        /* Drive EMMC_DISABLE low by setting Select high */
         vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
+
+        /* Reset RPi CPU; needs to be done twice for some reason */
         vos_gpio_write_pin(GPIO_RPI_RESET, 0);
+        dev_timer_oneshot(timer_uart, 1);
         vos_gpio_write_pin(GPIO_RPI_RESET, 1);
+        dev_timer_oneshot(timer_uart, 1000);
+        vos_gpio_write_pin(GPIO_RPI_RESET, 0);
+        dev_timer_oneshot(timer_uart, 1);
+        vos_gpio_write_pin(GPIO_RPI_RESET, 1);
+
+        /* Begin 1st USB stage */
+        if (usb_first_stage())
+        {
+            uart_reply(UART_REPLY_READY);
+        }
     }
     else uart_dbg("timeout", 0, 0);
 }

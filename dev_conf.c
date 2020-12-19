@@ -65,15 +65,17 @@ void dev_conf_uart(VOS_HANDLE uart, uint32 baud)
 void dev_conf_usb(VOS_HANDLE usb)
 {
     
+
+
 }
 
 /* Initialize timer */
-void dev_conf_timer(VOS_HANDLE timer, uint8 mode)
+void dev_conf_timer(VOS_HANDLE timer, uint8 mode, uint8 tick)
 {
     tmr_ioctl_cb_t iocb;
 
     iocb.ioctl_code = VOS_IOCTL_TIMER_SET_TICK_SIZE;
-    iocb.param = TIMER_TICK_MS;
+    iocb.param = tick;
     vos_dev_ioctl(timer, &iocb);
 
     iocb.ioctl_code = VOS_IOCTL_TIMER_SET_DIRECTION;
@@ -121,6 +123,14 @@ void dev_timer_wait(VOS_HANDLE timer)
     tmr_ioctl_cb_t iocb;
     iocb.ioctl_code = VOS_IOCTL_TIMER_WAIT_ON_COMPLETE;
     vos_dev_ioctl(timer, &iocb);
+}
+
+/* One-shot blocking timeout */
+void dev_timer_oneshot(VOS_HANDLE timer, uint16 timeout)
+{
+    dev_timer_stop(timer);
+    dev_timer_start(timer, timeout);
+    dev_timer_wait(timer);
 }
 
 /* Check status of the Rx queue */

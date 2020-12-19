@@ -13,11 +13,13 @@
 #define SPI_XFER_THREAD_STACK 1024
 #define SPI_HELPER_THREAD_STACK 512
 
+VOS_HANDLE usb;
 VOS_HANDLE bus_spi;
 VOS_HANDLE payload_spi;
 VOS_HANDLE uart;
 VOS_HANDLE timer_wd;
 VOS_HANDLE timer_uart;
+VOS_HANDLE boms_drv;
 
 void main()
 {
@@ -27,6 +29,7 @@ void main()
     tmr_context_t tmr0_conf;
     tmr_context_t tmr1_conf;
     gpio_context_t gpio_conf;
+    usbhost_context_t usb_conf;
     
     /* Kernel & IO init */
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
@@ -68,8 +71,8 @@ void main()
     timer_uart = vos_dev_open(VOS_DEV_TIMER_1);
     dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
     dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
-    dev_conf_timer(timer_wd, TIMER_MODE_CONTINUOUS);
-    dev_conf_timer(timer_uart, TIMER_MODE_SINGLE_SHOT);
+    dev_conf_timer(timer_wd, TIMER_MODE_CONTINUOUS, TIMER_TICK_MS);
+    dev_conf_timer(timer_uart, TIMER_MODE_SINGLE_SHOT, TIMER_TICK_MS);
     dev_conf_uart(uart, 921600);
 
     /* Configure priority and start threads */

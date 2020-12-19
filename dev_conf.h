@@ -15,7 +15,8 @@
 #define VOS_DEV_GPIO_PORT_A 4
 #define VOS_DEV_TIMER_0 5
 #define VOS_DEV_TIMER_1 6
-#define VOS_NUMBER_DEVICES 7
+#define VOS_DEV_BOMS_DRV 7
+#define VOS_NUMBER_DEVICES 8
 
 #define GPIO_RPI_IRQ GPIO_A_2
 #define GPIO_RPI_EMMC GPIO_A_4
@@ -30,17 +31,19 @@
 #include "Timers.h"
 
 /* Device globals */
+extern VOS_HANDLE usb;
 extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
 extern VOS_HANDLE timer_wd;
 extern VOS_HANDLE timer_uart;
+extern VOS_HANDLE boms_drv;
 
 /* Device initialization */
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(VOS_HANDLE uart, uint32 baud);
-void dev_conf_timer(VOS_HANDLE timer, uint8 mode);
+void dev_conf_timer(VOS_HANDLE timer, uint8 mode, uint8 tick);
 void dev_conf_usb(VOS_HANDLE usb);
 
 /* Helpers */
@@ -48,6 +51,7 @@ uint16 dev_timer_status(VOS_HANDLE timer);
 void dev_timer_start(VOS_HANDLE timer, uint16 timeout);
 void dev_timer_stop(VOS_HANDLE timer);
 void dev_timer_wait(VOS_HANDLE timer);
+void dev_timer_oneshot(VOS_HANDLE timer, uint16 timeout);
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
