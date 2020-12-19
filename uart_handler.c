@@ -60,11 +60,11 @@ void uart_run_sequence()
 
         /* Reset RPi CPU; needs to be done twice for some reason */
         vos_gpio_write_pin(GPIO_RPI_RESET, 0);
-        dev_timer_oneshot(timer_uart, 1);
+        vos_delay_msecs(1);
         vos_gpio_write_pin(GPIO_RPI_RESET, 1);
-        dev_timer_oneshot(timer_uart, 1000);
+        vos_delay_msecs(1000);
         vos_gpio_write_pin(GPIO_RPI_RESET, 0);
-        dev_timer_oneshot(timer_uart, 1);
+        vos_delay_msecs(1);
         vos_gpio_write_pin(GPIO_RPI_RESET, 1);
 
         /* Begin 1st USB stage */

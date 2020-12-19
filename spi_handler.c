@@ -134,10 +134,9 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 prev_cnt = 0, count_on_same = 0;
-    dev_timer_start(timer_wd, 1000);
     for(;;)
     {
-        dev_timer_wait(timer_wd);
+        vos_delay_msecs(1000);
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
         #endif

@@ -28,109 +28,110 @@ void dev_conf_iomux()
 /* Configure SPI slave */
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
 {
-    common_ioctl_cb_t spi_iocb;
+    common_ioctl_cb_t iocb;
 
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SET_MODE;
-    spi_iocb.set.param = SPI_SLAVE_MODE_UNMANAGED;
-    vos_dev_ioctl(spi, &spi_iocb);
+    iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SET_MODE;
+    iocb.set.param = SPI_SLAVE_MODE_UNMANAGED;
+    vos_dev_ioctl(spi, &iocb);
 
-    spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPHA;
-	spi_iocb.set.param = phase;
-	vos_dev_ioctl(spi, &spi_iocb);
+    iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPHA;
+    iocb.set.param = phase;
+    vos_dev_ioctl(spi, &iocb);
 
-	spi_iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPOL;
-	spi_iocb.set.param = polarity;
-	vos_dev_ioctl(spi, &spi_iocb);
+    iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPOL;
+    iocb.set.param = polarity;
+    vos_dev_ioctl(spi, &iocb);
 
-    spi_iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    spi_iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    vos_dev_ioctl(spi, &spi_iocb);
+    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
+    iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
+    vos_dev_ioctl(spi, &iocb);
 }
 
 /* Configure UART */
 void dev_conf_uart(VOS_HANDLE uart, uint32 baud)
 {
-    common_ioctl_cb_t uart_iocb;
+    common_ioctl_cb_t iocb;
 
-    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
-    uart_iocb.set.uart_baud_rate = baud;
-    vos_dev_ioctl(uart, &uart_iocb);
+    iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
+    iocb.set.uart_baud_rate = baud;
+    vos_dev_ioctl(uart, &iocb);
 
-    uart_iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
-    uart_iocb.set.param = UART_FLOW_NONE;
-    vos_dev_ioctl(uart, &uart_iocb);
+    iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
+    iocb.set.param = UART_FLOW_NONE;
+    vos_dev_ioctl(uart, &iocb);
 }
 
-/* Configure USB host */
-void dev_conf_usb(VOS_HANDLE usb)
+/* Wait and acquire a USB boot device with a specific serial number */
+uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms)
 {
-    
+    uint8 status = 0;
+    usbhost_ioctl_cb_t iocb;
+    usb_deviceRequest_t request;
+    usb_deviceDescriptor_t descriptor;
+    usbhost_device_handle_ex if_query = 0, if_boot = 0;
+    usbhost_ioctl_cb_vid_pid_t vid_pid = { RPI_USB_VID, RPI_USB_PID };
 
+    /* Prepare descriptor request */
+    request.bRequest = USB_REQUEST_CODE_GET_DESCRIPTOR;
+    request.bmRequestType = USB_BMREQUESTTYPE_DEV_TO_HOST |
+        USB_BMREQUESTTYPE_STANDARD |
+        USB_BMREQUESTTYPE_DEVICE;
+    request.wValue = (USB_DESCRIPTOR_TYPE_DEVICE << 8) | 0x00;
+    request.wIndex = 0x0000;
+    request.wLength = 0x0012;
 
-}
+    /* Start querying the USB bus */
+    while(timeout_ms--)
+    {
+        /* Try finding the device interface by VID and PID */
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_VID_PID;
+        iocb.handle.dif = NULL;
+        iocb.set = &vid_pid;
+        iocb.get = &if_query;
+        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && if_query != NULL)
+        {
+            /* If found, try to get the 2nd interface (the 1st might be mass storage instead) 
+            ** See Initialize_Device: https://github.com/raspberrypi/usbboot/blob/master/main.c */
+            if_boot = if_query;
+            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_NEXT_HANDLE;
+            iocb.handle.dif = if_query;
+            iocb.get = &if_query;
+            vos_dev_ioctl(usb, &iocb);
+            
+            /* If found, set as primary interface, otherwise we should be okay */
+            if (if_query) if_boot = if_query;
 
-/* Initialize timer */
-void dev_conf_timer(VOS_HANDLE timer, uint8 mode, uint8 tick)
-{
-    tmr_ioctl_cb_t iocb;
+            /* Next, try get the control endpoint */
+            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
+            iocb.handle.dif = if_boot;
+            iocb.get = &dev->ctrl;
+            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+            {
+                /* Now get the descriptor and verify the serial number */
+                iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
+                iocb.handle.ep = dev->ctrl;
+                iocb.set = &request;
+                iocb.get = &descriptor;
+                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && descriptor.iSerialNumber == serial_num)
+                {
+                    /* Finally, get the bulk transfer endpoint */
+                    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
+                    iocb.handle.dif = if_boot;
+                    iocb.get = &dev->bulk;
+                    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+                    {
+                        return TRUE;
+                    }
+                }
+            }
+        }
+        else
+        {
+            vos_delay_msecs(1);
+        }
+    }
 
-    iocb.ioctl_code = VOS_IOCTL_TIMER_SET_TICK_SIZE;
-    iocb.param = tick;
-    vos_dev_ioctl(timer, &iocb);
-
-    iocb.ioctl_code = VOS_IOCTL_TIMER_SET_DIRECTION;
-    iocb.param = TIMER_COUNT_DOWN;
-    vos_dev_ioctl(timer, &iocb);
-
-    iocb.ioctl_code = VOS_IOCTL_TIMER_SET_MODE;
-    iocb.param = mode;
-    vos_dev_ioctl(timer, &iocb);
-}
-
-/* Start timer */
-void dev_timer_start(VOS_HANDLE timer, uint16 timeout)
-{
-    tmr_ioctl_cb_t iocb;
-
-    iocb.ioctl_code = VOS_IOCTL_TIMER_SET_COUNT;
-    iocb.param = timeout;
-    vos_dev_ioctl(timer, &iocb);
-
-    iocb.ioctl_code = VOS_IOCTL_TIMER_START;
-    vos_dev_ioctl(timer, &iocb);
-}
-
-/* Stop timer */
-void dev_timer_stop(VOS_HANDLE timer)
-{
-    tmr_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_TIMER_STOP;
-    vos_dev_ioctl(timer, &iocb);
-}
-
-/* Check timer status */
-uint16 dev_timer_status(VOS_HANDLE timer)
-{
-    tmr_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_TIMER_GET_CURRENT_COUNT;
-    vos_dev_ioctl(timer, &iocb);
-    return iocb.param;
-}
-
-/* Wait for timer to expire */
-void dev_timer_wait(VOS_HANDLE timer)
-{
-    tmr_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_TIMER_WAIT_ON_COMPLETE;
-    vos_dev_ioctl(timer, &iocb);
-}
-
-/* One-shot blocking timeout */
-void dev_timer_oneshot(VOS_HANDLE timer, uint16 timeout)
-{
-    dev_timer_stop(timer);
-    dev_timer_start(timer, timeout);
-    dev_timer_wait(timer);
+    return FALSE;
 }
 
 /* Check status of the Rx queue */

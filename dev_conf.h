@@ -22,38 +22,40 @@
 #define GPIO_RPI_EMMC GPIO_A_4
 #define GPIO_RPI_RESET GPIO_A_7
 
+#define RPI_USB_VID 0x0A5C
+#define RPI_USB_PID 0x2764
+
 #include "vos.h"
 #include "SPISlave.h"
 #include "UART.h"
 #include "GPIO.h"
+#include "USB.h"
 #include "USBHost.h"
 #include "IOCTL.h"
-#include "Timers.h"
+#include "BOMS.h"
 
 /* Device globals */
 extern VOS_HANDLE usb;
 extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
-extern VOS_HANDLE timer_wd;
-extern VOS_HANDLE timer_uart;
 extern VOS_HANDLE boms_drv;
+
+/* USB boot-stage device */
+typedef struct {
+    usbhost_ep_handle ctrl;
+    usbhost_ep_handle bulk;
+} dev_usb_boot_t;
 
 /* Device initialization */
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(VOS_HANDLE uart, uint32 baud);
-void dev_conf_timer(VOS_HANDLE timer, uint8 mode, uint8 tick);
-void dev_conf_usb(VOS_HANDLE usb);
 
 /* Helpers */
-uint16 dev_timer_status(VOS_HANDLE timer);
-void dev_timer_start(VOS_HANDLE timer, uint16 timeout);
-void dev_timer_stop(VOS_HANDLE timer);
-void dev_timer_wait(VOS_HANDLE timer);
-void dev_timer_oneshot(VOS_HANDLE timer, uint16 timeout);
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
+uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms);
 
 #endif /* _dev_conf_H_ */
