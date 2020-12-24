@@ -1,10 +1,16 @@
 # Imitate bus reprogramming through UART
-import serial
 from crccheck.crc import Crc16CcittFalse as crc16
+import serial
+import signal
+import sys
 
-port = 'COM3'
+port = 'COM8'
 blob_len = 512
 sync = bytearray([0x35, 0x2E, 0xF8, 0x53])
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
 
 def create_pkt(data_len):
     buf = bytearray()
@@ -19,20 +25,21 @@ def create_pkt(data_len):
     crc = crc16.calc(buf)
     buf.append((crc >> 8) & 0xFF)
     buf.append(crc & 0xFF)
+    print(len(buf))
     return buf
 
 def process_pkt(uart):
     sync_index = 0
     while (sync_index < 4):
         b = uart.read(1)
-        if(b == sync[sync_index]):
+        if(b[0] == sync[sync_index]):
             sync_index += 1
-        elif (b == sync[0]):
+        elif (b[0] == sync[0]):
             sync_index = 1
         else:
             sync_index = 0
 
-    header = uart.read(10)
+    header = uart.read(6)
     apid = ((header[0] << 8) & 0x7) | header[1]
     pkt_len = ((header[4] << 8) | header[5]) + 1
     data = uart.read(pkt_len)
