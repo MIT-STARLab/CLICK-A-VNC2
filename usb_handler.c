@@ -11,11 +11,8 @@
 
 #include "uart_handler.h"
 
-/* First stage - init USB, wait for dev, and send bootloader code */
+/* First stage - send embedded bootloader code */
 uint8 usb_first_stage()
 {
-    
-    
-
-    return FALSE;
+    return TRUE;
 }

@@ -9,9 +9,10 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 
-#define IDLE_THREAD_STACK 256
-#define SPI_XFER_THREAD_STACK 1024
-#define SPI_HELPER_THREAD_STACK 512
+#define IDLE_THREAD_STACK 512
+#define BUS_THREAD_STACK 2048
+#define PAYLOAD_THREAD_STACK 1024
+#define HELPER_THREAD_STACK 512
 
 VOS_HANDLE bus_spi;
 VOS_HANDLE payload_spi;
@@ -40,18 +41,18 @@ void main()
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     gpio_conf.port_identifier = GPIO_PORT_A;
-    usb_conf.if_count = 1;
-	usb_conf.ep_count = 1;
-	usb_conf.xfer_count = 1;
-	usb_conf.iso_xfer_count = 0;
+    usb_conf.if_count = 2;
+	usb_conf.ep_count = 4;
+	usb_conf.xfer_count = 2;
+	usb_conf.iso_xfer_count = 2;
 
     /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
-    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
-    boms_init(VOS_DEV_BOMS_DRV);
+    // usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+    // boms_init(VOS_DEV_BOMS_DRV);
 
     /* Set all GPIO as output */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
@@ -59,7 +60,7 @@ void main()
     vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
     vos_gpio_write_pin(GPIO_RPI_IRQ, 0);
     vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
-    vos_gpio_write_pin(GPIO_RPI_RESET, 1);
+    vos_gpio_write_pin(GPIO_RPI_RESET, 0);
 
     /* Open and configure drivers */
     bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
@@ -70,9 +71,9 @@ void main()
     dev_conf_uart(uart, 921600);
 
     /* Configure priority and start threads */
-    vos_create_thread(20, SPI_XFER_THREAD_STACK, spi_handler_bus, 0);
-    vos_create_thread(15, SPI_XFER_THREAD_STACK, spi_handler_payload, 0);
-    vos_create_thread(10, SPI_HELPER_THREAD_STACK, spi_handler_watchdog, 0);
+    vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
+    vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
+    vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
     vos_start_scheduler();
 
     /* Never reached */

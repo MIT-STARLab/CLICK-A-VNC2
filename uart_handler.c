@@ -48,9 +48,10 @@ void uart_run_sequence()
 {
     uint16 pkt_len = 0;
     uint8 *pkt_start = NULL;
+    dev_usb_boot_t dev_first, dev_second;
     
     /* Wait for first blob before doing anything */
-    if ((pkt_len = packet_process_timeout(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 3000)))
+    if ((pkt_len = packet_process_timeout(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 5000)))
     {
         /* Signal that we are processing */
         uart_reply(UART_REPLY_PROCESSING);
@@ -58,20 +59,28 @@ void uart_run_sequence()
         /* Drive EMMC_DISABLE low by setting Select high */
         vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
 
-        /* Reset RPi CPU; needs to be done twice for some reason */
+        /* Reset RPi CPU
+        ** Needs to be reset twice with about 2 sec delay for some reason
+        ** Afterward, USB enumeration takes about 8 sec */
         vos_gpio_write_pin(GPIO_RPI_RESET, 0);
         vos_delay_msecs(1);
         vos_gpio_write_pin(GPIO_RPI_RESET, 1);
-        vos_delay_msecs(1000);
+        vos_delay_msecs(2000);
         vos_gpio_write_pin(GPIO_RPI_RESET, 0);
         vos_delay_msecs(1);
         vos_gpio_write_pin(GPIO_RPI_RESET, 1);
 
-        /* Begin 1st USB stage */
-        if (usb_first_stage())
+        vos_delay_msecs(8000);
+
+        /* Begin 1st USB stage,  */
+        usb = vos_dev_open(VOS_DEV_USBHOST_1);
+        if(dev_usb_boot_wait(0, &dev_first, 10000))
         {
-            uart_reply(UART_REPLY_READY);
+
         }
+
+        vos_dev_close(usb);
+        
     }
     else uart_dbg("timeout", 0, 0);
 }

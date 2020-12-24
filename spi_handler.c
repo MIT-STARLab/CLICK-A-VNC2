@@ -59,15 +59,15 @@ void spi_handler_bus()
             dev_dma_release(bus_spi);
 
             /* Initialize and run reprogramming sequence if requested */
-            if (spi_is_reprog_command(pkt_start, pkt_len))
-            {
-                dev_dma_acquire(uart);
-                uart_run_sequence();
-                dev_dma_release(uart);
-            }
+            // if (spi_is_reprog_command(pkt_start, pkt_len))
+            // {
+            //     dev_dma_acquire(uart);
+            //     uart_run_sequence();
+            //     dev_dma_release(uart);
+            // }
 
             /* Otherwise start a regular read-write on payload SPI */
-            else
+            // else
             {
                 /* Acquire DMA and unblock payload read operation on other thread */
                 dev_dma_acquire(payload_spi);

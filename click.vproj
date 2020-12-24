@@ -62,7 +62,7 @@
 			<AdditionalOpts></AdditionalOpts>
 		</LinkerOptions>
 	</ReleaseMode>
-	<BuildMode>Release</BuildMode>
+	<BuildMode>Debug</BuildMode>
 	<AppWizard>
 		<Active>true</Active>
 		<Type>general</Type>
@@ -489,13 +489,13 @@
 	</BuildList>
 	<LibraryFiles>
 		<fileDir></fileDir>
-		<filename>Timers.a</filename>
+		<filename>BOMS.a</filename>
 		<fileType>10</fileType>
 		<isFileDirty>false</isFileDirty>
 		<VirtualFolder>{00000000-0000-0000-0000-000000000008}</VirtualFolder>
 	</LibraryFiles>
 	<BuildList>
-		<filename>Timers.a</filename>
+		<filename>BOMS.a</filename>
 	</BuildList>
 	<LibraryFiles>
 		<fileDir></fileDir>
@@ -711,7 +711,31 @@
 	</Files>
 	<BuildList>
 		<filename>uart_handler.c</filename>
-	</BuildList>	<OpenFilesList>
+	</BuildList>	<Files>
+		<filename>usb_handler.c</filename>
+		<fileDir></fileDir>
+		<fileType>1</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder></VirtualFolder>
+	</Files>
+	<BuildList>
+		<filename>usb_handler.c</filename>
+	</BuildList>
+	<Files>
+		<filename>usb_handler.h</filename>
+		<fileDir></fileDir>
+		<fileType>4</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder></VirtualFolder>
+	</Files>
+	<BuildList>
+		<filename>usb_handler.h</filename>
+	</BuildList>
+	
+	
+	
+	
+	<OpenFilesList>
 		<filename>spi_handler.c</filename>
 		<actvieTabIndex>0</actvieTabIndex>
 	</OpenFilesList>
