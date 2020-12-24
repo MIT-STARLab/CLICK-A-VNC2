@@ -8,6 +8,7 @@
 #include "packets.h"
 #include "dev_conf.h"
 #include "spi_handler.h"
+#include "uart_handler.h"
 
 #define IDLE_THREAD_STACK 512
 #define BUS_THREAD_STACK 2048
@@ -51,8 +52,8 @@ void main()
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
-    // usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
-    // boms_init(VOS_DEV_BOMS_DRV);
+    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+    boms_init(VOS_DEV_BOMS_DRV);
 
     /* Set all GPIO as output */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
@@ -60,7 +61,7 @@ void main()
     vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
     vos_gpio_write_pin(GPIO_RPI_IRQ, 0);
     vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
-    vos_gpio_write_pin(GPIO_RPI_RESET, 0);
+    vos_gpio_write_pin(GPIO_RPI_RESET, 1);
 
     /* Open and configure drivers */
     bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
@@ -71,9 +72,10 @@ void main()
     dev_conf_uart(uart, 921600);
 
     /* Configure priority and start threads */
-    vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
-    vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
-    vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
+    // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
+    // vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
+    // vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
+    vos_create_thread_ex(10, HELPER_THREAD_STACK, uart_test, "ut", 0);
     vos_start_scheduler();
 
     /* Never reached */

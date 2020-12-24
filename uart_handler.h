@@ -17,4 +17,6 @@
 void uart_dbg(char *msg, uint16 number1, uint16 number2);
 void uart_run_sequence();
 
+void uart_test();
+
 #endif /* _uart_handler_H_ */

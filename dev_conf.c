@@ -43,10 +43,6 @@ void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
     iocb.ioctl_code = VOS_IOCTL_SPI_SLAVE_SCK_CPOL;
     iocb.set.param = polarity;
     vos_dev_ioctl(spi, &iocb);
-
-    iocb.ioctl_code = VOS_IOCTL_COMMON_ENABLE_DMA;
-    iocb.set.param = DMA_ACQUIRE_AS_REQUIRED;
-    vos_dev_ioctl(spi, &iocb);
 }
 
 /* Configure UART */

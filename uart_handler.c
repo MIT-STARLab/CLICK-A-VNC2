@@ -51,7 +51,7 @@ void uart_run_sequence()
     dev_usb_boot_t dev_first, dev_second;
     
     /* Wait for first blob before doing anything */
-    if ((pkt_len = packet_process_timeout(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 5000)))
+    if ((pkt_len = packet_process_blocking(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 1000)))
     {
         /* Signal that we are processing */
         uart_reply(UART_REPLY_PROCESSING);
@@ -72,7 +72,7 @@ void uart_run_sequence()
 
         vos_delay_msecs(8000);
 
-        /* Begin 1st USB stage,  */
+        /* Begin 1st USB stage */
         usb = vos_dev_open(VOS_DEV_USBHOST_1);
         if(dev_usb_boot_wait(0, &dev_first, 10000))
         {
@@ -83,4 +83,14 @@ void uart_run_sequence()
         
     }
     else uart_dbg("timeout", 0, 0);
+}
+
+/* Test thread */
+void uart_test()
+{
+    dev_dma_acquire(uart);
+    for(;;)
+    {
+        uart_run_sequence();
+    }
 }
