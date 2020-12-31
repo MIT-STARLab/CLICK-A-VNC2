@@ -51,12 +51,16 @@ typedef struct {
 /* Device initialization */
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
-void dev_conf_uart(VOS_HANDLE uart, uint32 baud);
+void dev_conf_uart(uint32 baud);
+void dev_usb_disable();
+void dev_usb_enable();
 
 /* Helpers */
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
 uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms);
+
+void dev_usb_test();
 
 #endif /* _dev_conf_H_ */

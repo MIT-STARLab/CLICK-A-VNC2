@@ -56,6 +56,14 @@ void uart_run_sequence()
         /* Signal that we are processing */
         uart_reply(UART_REPLY_PROCESSING);
 
+        dev_usb_disable();
+        vos_delay_msecs(100);
+        dev_usb_test();
+
+        // dev_usb_enable();
+        // vos_delay_msecs(100);
+        // dev_usb_test();
+
         /*
 
         /* Drive EMMC_DISABLE low by setting Select high */
@@ -75,14 +83,11 @@ void uart_run_sequence()
         // vos_delay_msecs(5000);
 
         /* Begin 1st USB stage */
-        usb = vos_dev_open(VOS_DEV_USBHOST_1);
-        uart_dbg("usb open", 0, usb);
+
         if(dev_usb_boot_wait(0, &dev_first, 10000))
         {
 
         }
-
-        vos_dev_close(usb);
     }
     else
     {

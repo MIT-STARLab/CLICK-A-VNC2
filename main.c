@@ -67,9 +67,10 @@ void main()
     // bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
     // payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
+    usb = vos_dev_open(VOS_DEV_USBHOST_1);
     // dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
     // dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
-    dev_conf_uart(uart, 921600);
+    dev_conf_uart(921600);
 
     /* Configure priority and start threads */
     // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);

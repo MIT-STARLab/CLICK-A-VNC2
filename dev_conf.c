@@ -46,7 +46,7 @@ void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
 }
 
 /* Configure UART */
-void dev_conf_uart(VOS_HANDLE uart, uint32 baud)
+void dev_conf_uart(uint32 baud)
 {
     common_ioctl_cb_t iocb;
 
@@ -57,6 +57,60 @@ void dev_conf_uart(VOS_HANDLE uart, uint32 baud)
     iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
     iocb.set.param = UART_FLOW_NONE;
     vos_dev_ioctl(uart, &iocb);
+}
+
+/* Put the USB port into reset state */
+void dev_usb_disable()
+{
+    uint8 status = 0;
+    usbhost_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_USBHUB_SET_PORT_RESET;
+    iocb.handle.dif = NULL;
+    status = vos_dev_ioctl(usb, &iocb);
+    uart_dbg("USB set port reset", 0, status);
+    // iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_PORT_ENABLE;
+    // status = vos_dev_ioctl(usb, &iocb);
+    // uart_dbg("USB clear port en ret", 0, status);
+    // iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_PORT_POWER;
+    // status = vos_dev_ioctl(usb, &iocb);
+    // uart_dbg("USB clear port pwr ret", 0, status);
+}
+
+/* Clear the USB reset state */
+void dev_usb_enable()
+{
+    uint8 status = 0;
+    usbhost_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_C_PORT_RESET;
+    iocb.handle.dif = NULL;
+    status = vos_dev_ioctl(usb, &iocb);
+    uart_dbg("USB clear port reset", 0, status);
+}
+
+/* USB testing */
+void dev_usb_test()
+{
+    uint8 cnt = 0, i = 0;
+    uint16 st = 0;
+    usbhost_ioctl_cb_t iocb;
+    iocb.ioctl_code = VOS_IOCTL_USBHUB_HUB_PORT_COUNT;
+    iocb.handle.dif = NULL;
+    iocb.get = &cnt;
+    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+    {
+        uart_dbg("USB port cnt", cnt, 0);
+        for (i = 1; i <= cnt; i++)
+        {
+            iocb.ioctl_code = VOS_IOCTL_USBHUB_PORT_STATUS;
+            iocb.get = &st;
+            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+            {
+                uart_dbg("USB port status", i, st);
+            }
+            else uart_dbg("USB port status err", i, 1);
+        }
+    }
+    else uart_dbg("USB port cnt err", 1, 1);
 }
 
 /* Wait and acquire a USB boot device with a specific serial number */
@@ -101,9 +155,10 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
             /* If found, set it as primary interface, otherwise we should be okay */
             if (if_query)
             {
-                uart_dbg("Found 2nd if", 1, 1);
+                uart_dbg("Using 2nd if", 1, 1);
                 if_boot = if_query;
             }
+            else uart_dbg("Using 1st if", 1, 1);
 
             /* Next, try get the control endpoint */
             iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
@@ -129,10 +184,13 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
                         uart_dbg("Acq bulk", 1, 1);
                         return TRUE;
                     }
+                    else uart_dbg("USB get bulk error", 1, 1);
                 }
+                else uart_dbg("USB serial matching error", descriptor.iSerialNumber, descriptor.iSerialNumber);
             }
+            else uart_dbg("USB get ctrl error", 1, 1);
         }
-        else uart_dbg("USB error", 1, 1);
+        else uart_dbg("USB get vid pid error", 1, 1);
         vos_delay_msecs(250);
     }
 
