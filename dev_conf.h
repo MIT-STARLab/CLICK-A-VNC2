@@ -23,7 +23,8 @@
 #define GPIO_RPI_RESET GPIO_A_7
 
 #define RPI_USB_VID 0x0A5C
-#define RPI_USB_PID 0x2764
+#define RPI_BOOT_PID 0x2764
+#define RPI_MSD_PID 0x0001
 
 #include "vos.h"
 #include "SPISlave.h"

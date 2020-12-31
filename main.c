@@ -45,15 +45,15 @@ void main()
     usb_conf.if_count = 2;
 	usb_conf.ep_count = 4;
 	usb_conf.xfer_count = 2;
-	usb_conf.iso_xfer_count = 2;
+	usb_conf.iso_xfer_count = 0;
 
     /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
-    spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
-    spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
+    // spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
+    // spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
     usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
-    boms_init(VOS_DEV_BOMS_DRV);
+    // boms_init(VOS_DEV_BOMS_DRV);
 
     /* Set all GPIO as output */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
@@ -64,18 +64,18 @@ void main()
     vos_gpio_write_pin(GPIO_RPI_RESET, 1);
 
     /* Open and configure drivers */
-    bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
-    payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
+    // bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
+    // payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
     uart = vos_dev_open(VOS_DEV_UART);
-    dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
-    dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
+    // dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
+    // dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     dev_conf_uart(uart, 921600);
 
     /* Configure priority and start threads */
     // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
     // vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
     // vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
-    vos_create_thread_ex(10, HELPER_THREAD_STACK, uart_test, "ut", 0);
+    vos_create_thread_ex(10, BUS_THREAD_STACK, uart_test, "ut", 0);
     vos_start_scheduler();
 
     /* Never reached */

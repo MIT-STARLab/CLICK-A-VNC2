@@ -66,8 +66,7 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
     usb_deviceRequest_t request;
     usb_deviceDescriptor_t descriptor;
     usbhost_device_handle_ex if_query = 0, if_boot = 0;
-    usbhost_ioctl_cb_vid_pid_t vid_pid = { RPI_USB_VID, RPI_USB_PID };
-    uint8 state = PORT_STATE_DISCONNECTED;
+    usbhost_ioctl_cb_vid_pid_t vid_pid = { RPI_USB_VID, RPI_BOOT_PID };
 
     /* Prepare descriptor request */
     request.bRequest = USB_REQUEST_CODE_GET_DESCRIPTOR;
@@ -78,74 +77,57 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
     request.wIndex = 0x0000;
     request.wLength = 0x0012;
 
-    // uart_dbg("Forcing enumeration", 1, 1);
-
-    // iocb.ioctl_code = VOS_IOCTL_USBHOST_ENUMERATE;
-    // iocb.handle.dif = NULL;
-    // vos_dev_ioctl(usb, &iocb);
-    // vos_delay_msecs(1000);
-
-    uart_dbg("Waiting for enumeration...", 1, 1);
+    uart_dbg("Waiting for device...", 1, 1);
 
     /* Start querying the USB bus */
     for(; timeout_ms > 250; timeout_ms -= 250)
     {
-        iocb.ioctl_code = VOS_IOCTL_USBHOST_GET_CONNECT_STATE;
+        /* Try finding the device interface by VID and PID */
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_VID_PID;
         iocb.handle.dif = NULL;
-        iocb.get = &state;
-        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+        iocb.set = &vid_pid;
+        iocb.get = &if_query;
+        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && if_query != NULL)
         {
-            if (state == PORT_STATE_ENUMERATED)
+            uart_dbg("Found vid_pid", 1, 1);
+            /* If found, try to get the 2nd interface (the 1st might be mass storage instead) 
+            ** See Initialize_Device: https://github.com/raspberrypi/usbboot/blob/master/main.c */
+            if_boot = if_query;
+            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_NEXT_HANDLE;
+            iocb.handle.dif = if_query;
+            iocb.get = &if_query;
+            vos_dev_ioctl(usb, &iocb);
+            
+            /* If found, set it as primary interface, otherwise we should be okay */
+            if (if_query)
             {
-                uart_dbg("Waiting for vid pid", 1, 1);
-                /* Try finding the device interface by VID and PID */
-                iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_VID_PID;
-                iocb.handle.dif = NULL;
-                iocb.set = &vid_pid;
-                iocb.get = &if_query;
-                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && if_query != NULL)
-                {
-                    uart_dbg("Found vid_pid", 1, 1);
-                    /* If found, try to get the 2nd interface (the 1st might be mass storage instead) 
-                    ** See Initialize_Device: https://github.com/raspberrypi/usbboot/blob/master/main.c */
-                    if_boot = if_query;
-                    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_NEXT_HANDLE;
-                    iocb.handle.dif = if_query;
-                    iocb.get = &if_query;
-                    vos_dev_ioctl(usb, &iocb);
-                    
-                    /* If found, set as primary interface, otherwise we should be okay */
-                    if (if_query)
-                    {
-                        uart_dbg("Found 2nd if", 1, 1);
-                        if_boot = if_query;
-                    }
+                uart_dbg("Found 2nd if", 1, 1);
+                if_boot = if_query;
+            }
 
-                    /* Next, try get the control endpoint */
-                    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
+            /* Next, try get the control endpoint */
+            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
+            iocb.handle.dif = if_boot;
+            iocb.get = &dev->ctrl;
+            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+            {
+                uart_dbg("Acq ctrl", 1, 1);
+                /* Now get the descriptor and verify the serial number */
+                iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
+                iocb.handle.ep = dev->ctrl;
+                iocb.set = &request;
+                iocb.get = &descriptor;
+                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && descriptor.iSerialNumber == serial_num)
+                {
+                    uart_dbg("Serial matches", 1, 1);
+                    /* Finally, get the bulk transfer endpoint */
+                    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
                     iocb.handle.dif = if_boot;
-                    iocb.get = &dev->ctrl;
+                    iocb.get = &dev->bulk;
                     if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
                     {
-                        uart_dbg("Acq ctrl", 1, 1);
-                        /* Now get the descriptor and verify the serial number */
-                        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
-                        iocb.handle.ep = dev->ctrl;
-                        iocb.set = &request;
-                        iocb.get = &descriptor;
-                        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && descriptor.iSerialNumber == serial_num)
-                        {
-                            uart_dbg("Serial matches", 1, 1);
-                            /* Finally, get the bulk transfer endpoint */
-                            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
-                            iocb.handle.dif = if_boot;
-                            iocb.get = &dev->bulk;
-                            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-                            {
-                                uart_dbg("Acq bulk", 1, 1);
-                                return TRUE;
-                            }
-                        }
+                        uart_dbg("Acq bulk", 1, 1);
+                        return TRUE;
                     }
                 }
             }
