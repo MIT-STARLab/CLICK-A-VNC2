@@ -10,6 +10,6 @@
 
 #include "vos.h"
 
-uint8 usb_first_stage();
+uint8 usb_first_stage(dev_usb_boot_t *dev);
 
 #endif /* _usb_handler_H_ */

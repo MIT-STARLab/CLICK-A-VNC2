@@ -52,8 +52,7 @@ typedef struct {
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(uint32 baud);
-void dev_usb_disable();
-void dev_usb_enable();
+void dev_conf_usb();
 
 /* Helpers */
 void dev_dma_acquire(VOS_HANDLE dev);

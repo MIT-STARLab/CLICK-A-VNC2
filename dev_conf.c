@@ -59,32 +59,16 @@ void dev_conf_uart(uint32 baud)
     vos_dev_ioctl(uart, &iocb);
 }
 
-/* Put the USB port into reset state */
-void dev_usb_disable()
+/* Prepare the USB stack */
+void dev_conf_usb()
 {
-    uint8 status = 0;
-    usbhost_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_USBHUB_SET_PORT_RESET;
-    iocb.handle.dif = NULL;
-    status = vos_dev_ioctl(usb, &iocb);
-    uart_dbg("USB set port reset", 0, status);
-    // iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_PORT_ENABLE;
-    // status = vos_dev_ioctl(usb, &iocb);
-    // uart_dbg("USB clear port en ret", 0, status);
-    // iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_PORT_POWER;
-    // status = vos_dev_ioctl(usb, &iocb);
-    // uart_dbg("USB clear port pwr ret", 0, status);
-}
-
-/* Clear the USB reset state */
-void dev_usb_enable()
-{
-    uint8 status = 0;
-    usbhost_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_USBHUB_CLEAR_C_PORT_RESET;
-    iocb.handle.dif = NULL;
-    status = vos_dev_ioctl(usb, &iocb);
-    uart_dbg("USB clear port reset", 0, status);
+    usbhost_context_t usb_conf;
+    usb_conf.if_count = 2;
+    usb_conf.ep_count = 4;
+    usb_conf.xfer_count = 2;
+    usb_conf.iso_xfer_count = 0;
+    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+    usb = vos_dev_open(VOS_DEV_USBHOST_1);
 }
 
 /* USB testing */
