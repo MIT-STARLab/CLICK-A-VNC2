@@ -127,7 +127,6 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
         iocb.get = &if_query;
         if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && if_query != NULL)
         {
-            uart_dbg("Found vid_pid", 1, 1);
             /* If found, try to get the 2nd interface (the 1st might be mass storage instead) 
             ** See Initialize_Device: https://github.com/raspberrypi/usbboot/blob/master/main.c */
             if_boot = if_query;
@@ -137,12 +136,7 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
             vos_dev_ioctl(usb, &iocb);
             
             /* If found, set it as primary interface, otherwise we should be okay */
-            if (if_query)
-            {
-                uart_dbg("Using 2nd if", 1, 1);
-                if_boot = if_query;
-            }
-            else uart_dbg("Using 1st if", 1, 1);
+            if (if_query) if_boot = if_query;
 
             /* Next, try get the control endpoint */
             iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
@@ -150,7 +144,6 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
             iocb.get = &dev->ctrl;
             if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
             {
-                uart_dbg("Acq ctrl", 1, 1);
                 /* Now get the descriptor and verify the serial number */
                 iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
                 iocb.handle.ep = dev->ctrl;
@@ -158,23 +151,17 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
                 iocb.get = &descriptor;
                 if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && descriptor.iSerialNumber == serial_num)
                 {
-                    uart_dbg("Serial matches", 1, 1);
                     /* Finally, get the bulk transfer endpoint */
                     iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
                     iocb.handle.dif = if_boot;
                     iocb.get = &dev->bulk;
                     if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
                     {
-                        uart_dbg("Acq bulk", 1, 1);
                         return TRUE;
                     }
-                    else uart_dbg("USB get bulk error", 1, 1);
                 }
-                else uart_dbg("USB serial matching error", descriptor.iSerialNumber, descriptor.iSerialNumber);
             }
-            else uart_dbg("USB get ctrl error", 1, 1);
         }
-        else uart_dbg("USB get vid pid error", 1, 1);
         vos_delay_msecs(250);
     }
 
