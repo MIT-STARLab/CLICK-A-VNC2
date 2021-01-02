@@ -22,7 +22,7 @@
 #define GPIO_RPI_EMMC GPIO_A_4
 #define GPIO_RPI_RESET GPIO_A_7
 #define GPIO_RPI_RESET_ACTIVE 0
-#define GPIO_RPI_RESET_INACTIVE ~GPIO_RPI_RESET_ACTIVE
+#define GPIO_RPI_RESET_INACTIVE 1
 
 #define RPI_USB_VID 0x0A5C
 #define RPI_BOOT_PID 0x2764
@@ -38,11 +38,11 @@
 #include "BOMS.h"
 
 /* Device globals */
-extern VOS_HANDLE usb;
 extern VOS_HANDLE bus_spi;
 extern VOS_HANDLE payload_spi;
 extern VOS_HANDLE uart;
-extern VOS_HANDLE boms_drv;
+extern VOS_HANDLE usb;
+extern VOS_HANDLE boms;
 
 /* USB boot-stage device */
 typedef struct {

@@ -101,23 +101,31 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
 /* Enter the reprogramming sequence */
 void usb_run_sequence()
 {
-    /* Start the USB stack and check port status */
+    /* Start the USB stack and wait for enumeration */
     dev_usb_start();
+    vos_delay_msecs(1000);
+
+    /* Check port status */
     if (dev_usb_status() == PORT_STATE_DISCONNECTED)
     {
-        uart_dbg("Resetting...", 0, 0);
+        /* Drive EMMC_DISABLE low by setting Select high */
+        vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
+
         /* Reset the RPi into USB bootloader mode */
         dev_rpi_reset();
 
         /* Following the reset, the USB enumeration happens after roughly 8-10 sec.
-        ** However, due to some stupid internal USB bug, the USB stack crashes the system here.
+        ** However, due to some internal USB bug, the USB stack crashes the system when it happens.
         ** This always happens during the first USB enumeration of the first RPi boot device.
         ** The only workaround is to let the crash happen and get reset by the internal watchdog...
         ** The second enumaration seems to always be successful. WTF.
-        ** Just wait for death here...
-        ** If it miraculously doesn't crash, perform a reset to avoid undefined behavior */
-        vos_delay_msecs(10000);
-        vos_reset_vnc2();
+        ** The internal watchdog counter resets the VNC2L if it's not cleared periodically.
+        ** The expiration time is 2^bitPos / 48e6; bitPos is given as argument below.
+        ** bitPos of 29 results in about 11 sec expiration */
+        vos_wdt_enable(29);
+
+        /* Just wait for death... */
+        vos_delay_msecs(20000);
     }
     else
     {

@@ -127,7 +127,7 @@ void spi_handler_payload()
     }
 }
 
-/* A 1 Hz watchdog for SPI and to reset the VNC2 internal watchdog
+/* A 1 Hz watchdog for SPI
 ** Sends interrupts if the payload did not respond to primary SPI interrupt
 ** (e.g. because RPI was still booting up...) */
 void spi_handler_watchdog()
@@ -139,7 +139,6 @@ void spi_handler_watchdog()
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
         #endif
-        vos_wdt_clear();
         if (payload_tx_cnt != prev_cnt)
         {
             prev_cnt = payload_tx_cnt;

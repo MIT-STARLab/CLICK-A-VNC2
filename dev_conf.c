@@ -22,7 +22,7 @@ void dev_conf_iomux()
     vos_iomux_define_output(31, IOMUX_OUT_UART_TXD);
     vos_iomux_define_input(32, IOMUX_IN_UART_RXD);
     vos_iomux_define_output(33, IOMUX_OUT_GPIO_PORT_A_2);
-    vos_iomux_define_input(34, IOMUX_IN_GPIO_PORT_A_7);
+    vos_iomux_define_bidi(34, IOMUX_IN_GPIO_PORT_A_7, IOMUX_OUT_GPIO_PORT_A_7);
     vos_iomux_define_output(45, IOMUX_OUT_GPIO_PORT_A_4);
 }
 
@@ -61,13 +61,16 @@ void dev_conf_uart(uint32 baud)
 /* Prepare the USB stack */
 void dev_usb_start()
 {
-    usbhost_context_t usb_conf;
-    usb_conf.if_count = 2;
-    usb_conf.ep_count = 4;
-    usb_conf.xfer_count = 2;
-    usb_conf.iso_xfer_count = 0;
-    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
-    usb = vos_dev_open(VOS_DEV_USBHOST_1);
+    if (usb == NULL)
+    {
+        usbhost_context_t usb_conf;
+        usb_conf.if_count = 2;
+        usb_conf.ep_count = 4;
+        usb_conf.xfer_count = 2;
+        usb_conf.iso_xfer_count = 0;
+        usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+        usb = vos_dev_open(VOS_DEV_USBHOST_1);
+    }
 }
 
 /* Get USB port status */
@@ -185,11 +188,13 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
 ** Afterward, the USB enumeration takes about 8-10 sec */
 void dev_rpi_reset()
 {
-    /* Reconfigure pin from high impedance to output */
-    vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
+    /* Configure pin as output */
+    // vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
     vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
 
     /* Run reset sequence */
+    vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
+    vos_delay_msecs(100);
     vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_ACTIVE);
     vos_delay_msecs(1);
     vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
@@ -198,9 +203,9 @@ void dev_rpi_reset()
     vos_delay_msecs(1);
     vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
 
-    /* Reconfigure pin back to high impedance */
-    vos_iomux_define_input(34, IOMUX_IN_GPIO_PORT_A_7);
-    vos_gpio_set_pin_mode(GPIO_RPI_RESET, 0);
+    /* Reconfigure pin to high impedance */
+    // vos_iomux_define_input(34, IOMUX_IN_GPIO_PORT_A_7);
+    // vos_gpio_set_pin_mode(GPIO_RPI_RESET, 0);
 }
 
 /* Check status of the Rx queue */

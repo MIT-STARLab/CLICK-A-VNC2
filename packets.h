@@ -24,6 +24,7 @@
 #define PACKET_SYNC_VALID(sync) (sync == PACKET_SYNC_MARKER)
 #define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))
 #define PACKET_ADD_SYNC(buf) *((uint32*) buf) = PACKET_SYNC_MARKER_LE
+#define PACKET_GET_CRC(hdr, len) (*((uint8*) hdr + len - 2) << 8) | *((uint8*) hdr + len - 1)
 
 /* CCSDS header in little endian */
 typedef struct {

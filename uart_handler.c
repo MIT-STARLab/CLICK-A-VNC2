@@ -47,9 +47,14 @@ static void uart_reply(const uint32 *pkt)
 void uart_test()
 {
     uint8 *pkt_start = NULL;
-    while(packet_process_blocking(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 100))
+    uart_dbg("Boot", 1, 1);
+    for(;;)
     {
-        uart_reply(UART_REPLY_PROCESSING);
-        usb_run_sequence();
+        if (packet_process_timeout(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 1000))
+        {
+            uart_reply(UART_REPLY_PROCESSING);
+            usb_run_sequence();
+        }
+        else uart_dbg("UART timeout", 0, 0);
     }
 }

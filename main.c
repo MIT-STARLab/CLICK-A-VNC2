@@ -9,36 +9,31 @@
 #include "dev_conf.h"
 #include "spi_handler.h"
 #include "uart_handler.h"
+#include "crc.h"
 
 #define IDLE_THREAD_STACK 512
 #define BUS_THREAD_STACK 2048
 #define PAYLOAD_THREAD_STACK 1024
 #define HELPER_THREAD_STACK 512
 
-VOS_HANDLE bus_spi;
-VOS_HANDLE payload_spi;
-VOS_HANDLE uart;
-VOS_HANDLE usb;
-VOS_HANDLE boms_drv;
+VOS_HANDLE bus_spi = NULL;
+VOS_HANDLE payload_spi = NULL;
+VOS_HANDLE uart = NULL;
+VOS_HANDLE usb = NULL;
+VOS_HANDLE boms = NULL;
 
 void main()
 {
     uart_context_t uart_conf;
     spislave_context_t spi0_conf;
     spislave_context_t spi1_conf;
-    gpio_context_t gpio_conf;
     
-    /* Kernel & IO init */
+    /* Kernel & basic init */
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
     vos_set_clock_frequency(VOS_48MHZ_CLOCK_FREQUENCY);
     vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
     dev_conf_iomux();
-
-    /* An internal watchdog counter resets the VNC2L if it's not cleared periodically.
-    ** In normal operation, the watchdog is cleared at 1 Hz in the SPI watchdog thread
-    ** The expiration time is 2^bitPos / 48e6. bitPos is given as argument below.
-    ** bitPos of 27 results in about 2.8 sec expiration */
-    vos_wdt_enable(27);
+    crc_16_load_table();
 
     /* Driver basic configuration */
     spi0_conf.slavenumber = SPI_SLAVE_0;
@@ -46,13 +41,11 @@ void main()
     spi1_conf.slavenumber = SPI_SLAVE_1;
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
-    gpio_conf.port_identifier = GPIO_PORT_A;
 
     /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
     // spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     // spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
-    gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
 
     /* Configure EMMC and interrupt GPIO as output and low */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
@@ -73,7 +66,7 @@ void main()
     // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
     // vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
     // vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
-    vos_create_thread_ex(10, BUS_THREAD_STACK, uart_test, "ut", 0);
+    vos_create_thread_ex(15, BUS_THREAD_STACK, uart_test, "ut", 0);
     vos_start_scheduler();
 
     /* Never reached */

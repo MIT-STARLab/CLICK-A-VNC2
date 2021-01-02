@@ -6,9 +6,13 @@
 */
 
 #include "crc.h"
+#include "uart_handler.h"
 
-/* Pre-calculated polynomial table */
-static const uint16 crc_16_ccitt_table[256] =
+/* Pre-calculated CRC-16/CCITT-FALSE polynomial table, stored in ROM
+** Editor IntelliSense doesn't understand rom flag */
+#ifndef __INTELLISENSE__
+
+rom uint16 crc_16_rom_table[256] =
 {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
@@ -44,6 +48,26 @@ static const uint16 crc_16_ccitt_table[256] =
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
+#else  /* __INTELLISENSE__ */
+
+const uint16 crc_16_rom_table[];
+
+#endif  /* __INTELLISENSE__ */
+
+static uint16 *crc_16_ram_table;
+
+/* Load the CRC table into RAM on boot
+** Testing revealed that after VNC2 watchdog reset the table was corrupt if declared in RAM...? */
+void crc_16_load_table()
+{
+    uint16 i = 0;
+    crc_16_ram_table = vos_malloc(256 * sizeof(uint16));
+    for (i = 0; i < 256; i++)
+    {
+        crc_16_ram_table[i] = crc_16_rom_table[i];
+    }
+}
+
 /* Update a CRC with new data. THE INITIAL VALUE MUST BE 0xFFFF */
 uint16 crc_16_update(uint16 crc, uint8 *data, uint16 len)
 {
@@ -51,7 +75,7 @@ uint16 crc_16_update(uint16 crc, uint8 *data, uint16 len)
     for (i = 0; i < len; i++)
     {
         tmp = (crc >> 8) ^ data[i];
-        crc = (crc << 8) ^ crc_16_ccitt_table[tmp];
+        crc = (crc << 8) ^ crc_16_ram_table[tmp];
     }
     return crc;
 }

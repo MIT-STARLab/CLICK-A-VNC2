@@ -45,7 +45,7 @@ static void packet_process_data(uint8 *data, uint16 len, packet_proc_t *proc)
 /* Check CRC and finalize packet processing */
 static uint16 packet_finalize(packet_proc_t *proc, uint8 **pkt_start)
 {
-    uint16 pkt_crc = 0;
+    uint16 pkt_crc = 0, calc_crc = 0;
 
     /* Check if we got enough data, if not, return zero */
     if (proc->pkt_read < proc->pkt_len) proc->pkt_len = 0;
@@ -54,11 +54,11 @@ static uint16 packet_finalize(packet_proc_t *proc, uint8 **pkt_start)
     else if (proc->pkt_len > 0)
     {
         *pkt_start = (uint8*) proc->header - PACKET_SYNC_LEN;
-        pkt_crc = (*(*pkt_start + proc->pkt_len - 2) << 8) | *(*pkt_start + proc->pkt_len - 1);
+        pkt_crc = PACKET_GET_CRC(proc->header, proc->pkt_len - PACKET_SYNC_LEN);
+        calc_crc = crc_16_update(0xFFFF, (uint8*) (proc->header), proc->pkt_len - PACKET_SYNC_LEN - 2);
 
         /* If CRC check fails, return zero */
-        if (pkt_crc != crc_16_update(0xFFFF, (uint8*) proc->header, 
-            proc->pkt_len - PACKET_SYNC_LEN - 2))
+        if (pkt_crc != calc_crc)
         {
             proc->pkt_len = 0;
         }
