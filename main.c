@@ -34,6 +34,12 @@ void main()
     vos_set_idle_thread_tcb_size(IDLE_THREAD_STACK);
     dev_conf_iomux();
 
+    /* An internal watchdog counter resets the VNC2L if it's not cleared periodically.
+    ** In normal operation, the watchdog is cleared at 1 Hz in the SPI watchdog thread
+    ** The expiration time is 2^bitPos / 48e6. bitPos is given as argument below.
+    ** bitPos of 27 results in about 2.8 sec expiration */
+    vos_wdt_enable(27);
+
     /* Driver basic configuration */
     spi0_conf.slavenumber = SPI_SLAVE_0;
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
@@ -48,13 +54,11 @@ void main()
     // spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
     gpio_init(VOS_DEV_GPIO_PORT_A, &gpio_conf);
 
-    /* Set all GPIO as output */
+    /* Configure EMMC and interrupt GPIO as output and low */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
     vos_gpio_set_pin_mode(GPIO_RPI_EMMC, 1);
-    vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
     vos_gpio_write_pin(GPIO_RPI_IRQ, 0);
     vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
-    vos_gpio_write_pin(GPIO_RPI_RESET, 1);
 
     /* Open and configure drivers */
     // bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
@@ -63,6 +67,7 @@ void main()
     // dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
     // dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     dev_conf_uart(921600);
+    dev_dma_acquire(uart);
 
     /* Configure priority and start threads */
     // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);

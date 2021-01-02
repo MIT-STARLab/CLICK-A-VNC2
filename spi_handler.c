@@ -61,9 +61,7 @@ void spi_handler_bus()
             /* Initialize and run reprogramming sequence if requested */
             // if (spi_is_reprog_command(pkt_start, pkt_len))
             // {
-            //     dev_dma_acquire(uart);
-            //     uart_run_sequence();
-            //     dev_dma_release(uart);
+            //     usb_run_sequence();
             // }
 
             /* Otherwise start a regular read-write on payload SPI */
@@ -129,8 +127,9 @@ void spi_handler_payload()
     }
 }
 
-/* The SPI watchdog sends interrupts if the payload did not respond to primary interrupt
-** (e.g. because RPI was still booting up...). Runs at 1 Hz. */
+/* A 1 Hz watchdog for SPI and to reset the VNC2 internal watchdog
+** Sends interrupts if the payload did not respond to primary SPI interrupt
+** (e.g. because RPI was still booting up...) */
 void spi_handler_watchdog()
 {
     uint32 prev_cnt = 0, count_on_same = 0;
@@ -140,6 +139,7 @@ void spi_handler_watchdog()
         #ifndef __INTELLISENSE__
         VOS_ENTER_CRITICAL_SECTION
         #endif
+        vos_wdt_clear();
         if (payload_tx_cnt != prev_cnt)
         {
             prev_cnt = payload_tx_cnt;

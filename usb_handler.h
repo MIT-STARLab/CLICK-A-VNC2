@@ -16,6 +16,6 @@ typedef struct {
     uint8 signature[20];
 } usb_boot_msg_t;
 
-uint8 usb_first_stage(dev_usb_boot_t *dev);
+void usb_run_sequence();
 
 #endif /* _usb_handler_H_ */

@@ -2,7 +2,7 @@
 ** Filename: dev_conf.h
 ** Author: Ondrej
 ** 
-** Handle device configuration
+** Handle device configuration and low-level access
 */
 
 #ifndef _dev_conf_H_
@@ -21,6 +21,8 @@
 #define GPIO_RPI_IRQ GPIO_A_2
 #define GPIO_RPI_EMMC GPIO_A_4
 #define GPIO_RPI_RESET GPIO_A_7
+#define GPIO_RPI_RESET_ACTIVE 0
+#define GPIO_RPI_RESET_INACTIVE ~GPIO_RPI_RESET_ACTIVE
 
 #define RPI_USB_VID 0x0A5C
 #define RPI_BOOT_PID 0x2764
@@ -52,13 +54,15 @@ typedef struct {
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
 void dev_conf_uart(uint32 baud);
-void dev_conf_usb();
+void dev_usb_start();
 
 /* Helpers */
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
 uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms);
+uint8 dev_usb_status();
+void dev_rpi_reset();
 
 void dev_usb_test();
 

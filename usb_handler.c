@@ -73,7 +73,7 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint16 len, uint8 *buf)
 }
 
 /* First stage - send the boot message and the embedded bootloader code */
-uint8 usb_first_stage(dev_usb_boot_t *dev)
+static uint8 usb_first_stage(dev_usb_boot_t *dev)
 {
     int usb_reply = -1;
     usb_boot_msg_t boot_msg;
@@ -96,4 +96,41 @@ uint8 usb_first_stage(dev_usb_boot_t *dev)
     }
 
     return FALSE;
+}
+
+/* Enter the reprogramming sequence */
+void usb_run_sequence()
+{
+    /* Start the USB stack and check port status */
+    dev_usb_start();
+    if (dev_usb_status() == PORT_STATE_DISCONNECTED)
+    {
+        uart_dbg("Resetting...", 0, 0);
+        /* Reset the RPi into USB bootloader mode */
+        dev_rpi_reset();
+
+        /* Following the reset, the USB enumeration happens after roughly 8-10 sec.
+        ** However, due to some stupid internal USB bug, the USB stack crashes the system here.
+        ** This always happens during the first USB enumeration of the first RPi boot device.
+        ** The only workaround is to let the crash happen and get reset by the internal watchdog...
+        ** The second enumaration seems to always be successful. WTF.
+        ** Just wait for death here...
+        ** If it miraculously doesn't crash, perform a reset to avoid undefined behavior */
+        vos_delay_msecs(10000);
+        vos_reset_vnc2();
+    }
+    else
+    {
+        for(;;)
+        {
+            uart_dbg("Port state", 0, dev_usb_status());
+            vos_delay_msecs(500);
+        }
+        /* Begin 1st USB stage */
+        // if (dev_usb_boot_wait(0, &dev_first, 5000))
+        // {
+        //     uart_dbg("1st stage starting", 0, 0);
+        //     success = usb_first_stage(&dev_first);
+        // }
+    }
 }

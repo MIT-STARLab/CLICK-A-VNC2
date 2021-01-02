@@ -43,57 +43,13 @@ static void uart_reply(const uint32 *pkt)
     vos_dev_write(uart, (uint8*) pkt, PACKET_UART_REPLY_LEN, NULL);
 }
 
-/* Starts the reprogramming sequence */
-void uart_run_sequence()
-{
-    uint16 pkt_len = 0;
-    uint8 *pkt_start = NULL, success = FALSE;
-    dev_usb_boot_t dev_first, dev_second;
-    
-    /* Wait for first golden image blob before doing anything */
-    if ((pkt_len = packet_process_blocking(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 100)))
-    {
-        /* Signal bus that we are processing */
-        uart_reply(UART_REPLY_PROCESSING);
-
-        /* Drive EMMC_DISABLE low by setting Select high */
-        vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
-
-        /* Reset RPi CPU
-        ** Needs to be reset twice with about 2 sec delay for some reason
-        ** Afterward, the USB enumeration takes about 8 sec */
-        vos_gpio_write_pin(GPIO_RPI_RESET, 0);
-        vos_delay_msecs(1);
-        vos_gpio_write_pin(GPIO_RPI_RESET, 1);
-        vos_delay_msecs(2000);
-        vos_gpio_write_pin(GPIO_RPI_RESET, 0);
-        vos_delay_msecs(1);
-        vos_gpio_write_pin(GPIO_RPI_RESET, 1);
-
-        /* Wait and then start the USB stack
-        ** If the stack is already active during reset, the VNC2 crashes for some reason... */
-        vos_delay_msecs(8000);
-        dev_conf_usb();
-
-        /* Begin 1st USB stage */
-        if (dev_usb_boot_wait(0, &dev_first, 5000))
-        {
-            uart_dbg("1st stage starting", 0, 0);
-            success = usb_first_stage(&dev_first);
-        }
-    }
-    else
-    {
-        uart_dbg("timeout", 0, 0);
-    }
-}
-
 /* Test thread */
 void uart_test()
 {
-    dev_dma_acquire(uart);
-    for(;;)
+    uint8 *pkt_start = NULL;
+    while(packet_process_blocking(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 100))
     {
-        uart_run_sequence();
+        uart_reply(UART_REPLY_PROCESSING);
+        usb_run_sequence();
     }
 }
