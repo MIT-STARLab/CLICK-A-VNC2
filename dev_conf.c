@@ -8,6 +8,13 @@
 #include "dev_conf.h"
 #include "uart_handler.h"
 
+/* Device globals */
+VOS_HANDLE bus_spi = NULL;
+VOS_HANDLE payload_spi = NULL;
+VOS_HANDLE uart = NULL;
+VOS_HANDLE usb = NULL;
+VOS_HANDLE boms = NULL;
+
 /* Configure IOMUX connections */
 void dev_conf_iomux()
 {
@@ -162,15 +169,19 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
                 iocb.handle.ep = dev->ctrl;
                 iocb.set = &request;
                 iocb.get = &descriptor;
-                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && descriptor.iSerialNumber == serial_num)
+                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
                 {
-                    /* Finally, get the bulk transfer endpoint */
-                    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
-                    iocb.handle.dif = if_boot;
-                    iocb.get = &dev->bulk;
-                    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+                    uart_dbg("Device serial number is", descriptor.iSerialNumber, descriptor.iSerialNumber);
+                    if (descriptor.iSerialNumber == serial_num)
                     {
-                        return TRUE;
+                        /* Finally, get the bulk transfer endpoint */
+                        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
+                        iocb.handle.dif = if_boot;
+                        iocb.get = &dev->bulk;
+                        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
+                        {
+                            return TRUE;
+                        }
                     }
                 }
             }
@@ -189,7 +200,6 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
 void dev_rpi_reset()
 {
     /* Configure pin as output */
-    // vos_iomux_define_output(34, IOMUX_OUT_GPIO_PORT_A_7);
     vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
 
     /* Run reset sequence */
@@ -202,10 +212,6 @@ void dev_rpi_reset()
     vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_ACTIVE);
     vos_delay_msecs(1);
     vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
-
-    /* Reconfigure pin to high impedance */
-    // vos_iomux_define_input(34, IOMUX_IN_GPIO_PORT_A_7);
-    // vos_gpio_set_pin_mode(GPIO_RPI_RESET, 0);
 }
 
 /* Check status of the Rx queue */

@@ -57,7 +57,7 @@ const uint16 crc_16_rom_table[];
 static uint16 *crc_16_ram_table;
 
 /* Load the CRC table into RAM on boot
-** Testing revealed that after VNC2 watchdog reset the table was corrupt if declared in RAM...? */
+** Testing revealed that after a watchdog reset the table was corrupt if declared in RAM...? */
 void crc_16_load_table()
 {
     uint16 i = 0;

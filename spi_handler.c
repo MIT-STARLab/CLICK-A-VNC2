@@ -45,8 +45,10 @@ void spi_handler_bus()
     uint8 *pkt_start = NULL;
 
     /* Bus handler starts unblocked and with DMA */
-    vos_init_mutex(&bus_write_busy, VOS_MUTEX_UNLOCKED);
+    bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
+    dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
     dev_dma_acquire(bus_spi);
+    vos_init_mutex(&bus_write_busy, VOS_MUTEX_UNLOCKED);
 
     for(;;)
     {
@@ -100,6 +102,8 @@ void spi_handler_payload()
     uint8 *pkt_start = NULL;
 
     /* Payload handler starts blocked without DMA */
+    payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
+    dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
     vos_init_mutex(&payload_read_block, VOS_MUTEX_LOCKED);
     vos_init_mutex(&payload_read_busy, VOS_MUTEX_UNLOCKED);
 

@@ -101,6 +101,8 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
 /* Enter the reprogramming sequence */
 void usb_run_sequence()
 {
+    dev_usb_boot_t dev_first;
+
     /* Start the USB stack and wait for enumeration */
     dev_usb_start();
     vos_delay_msecs(1000);
@@ -111,10 +113,8 @@ void usb_run_sequence()
         /* Drive EMMC_DISABLE low by setting Select high */
         vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
 
-        /* Reset the RPi into USB bootloader mode */
-        dev_rpi_reset();
-
-        /* Following the reset, the USB enumeration happens after roughly 8-10 sec.
+        /* Reset the RPi into USB bootloader mode.
+        ** Following the reset, the USB enumeration happens after roughly 8-10 sec.
         ** However, due to some internal USB bug, the USB stack crashes the system when it happens.
         ** This always happens during the first USB enumeration of the first RPi boot device.
         ** The only workaround is to let the crash happen and get reset by the internal watchdog...
@@ -123,22 +123,21 @@ void usb_run_sequence()
         ** The expiration time is 2^bitPos / 48e6; bitPos is given as argument below.
         ** bitPos of 29 results in about 11 sec expiration */
         vos_wdt_enable(29);
+        dev_rpi_reset();
 
         /* Just wait for death... */
-        vos_delay_msecs(20000);
+        dev_dma_release(uart);
+        vos_dev_close(uart);
+        vos_dev_close(usb);
+        vos_delay_msecs(30000);
     }
-    else
+    else    
     {
-        for(;;)
-        {
-            uart_dbg("Port state", 0, dev_usb_status());
-            vos_delay_msecs(500);
-        }
         /* Begin 1st USB stage */
-        // if (dev_usb_boot_wait(0, &dev_first, 5000))
-        // {
-        //     uart_dbg("1st stage starting", 0, 0);
-        //     success = usb_first_stage(&dev_first);
-        // }
+        if (dev_usb_boot_wait(0, &dev_first, 5000))
+        {
+            uart_dbg("1st stage starting", 0, 0);
+            // success = usb_first_stage(&dev_first);
+        }
     }
 }

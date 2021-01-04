@@ -16,12 +16,6 @@
 #define PAYLOAD_THREAD_STACK 1024
 #define HELPER_THREAD_STACK 512
 
-VOS_HANDLE bus_spi = NULL;
-VOS_HANDLE payload_spi = NULL;
-VOS_HANDLE uart = NULL;
-VOS_HANDLE usb = NULL;
-VOS_HANDLE boms = NULL;
-
 void main()
 {
     uart_context_t uart_conf;
@@ -44,23 +38,14 @@ void main()
 
     /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
-    // spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
-    // spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
+    spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
+    spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
 
     /* Configure EMMC and interrupt GPIO as output and low */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
     vos_gpio_set_pin_mode(GPIO_RPI_EMMC, 1);
     vos_gpio_write_pin(GPIO_RPI_IRQ, 0);
     vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
-
-    /* Open and configure drivers */
-    // bus_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_0);
-    // payload_spi = vos_dev_open(VOS_DEV_SPI_SLAVE_1);
-    uart = vos_dev_open(VOS_DEV_UART);
-    // dev_conf_spi(bus_spi, SPI_SLAVE_SCK_CPOL_1, SPI_SLAVE_SCK_CPHA_1);
-    // dev_conf_spi(payload_spi, SPI_SLAVE_SCK_CPOL_0, SPI_SLAVE_SCK_CPHA_0);
-    dev_conf_uart(921600);
-    dev_dma_acquire(uart);
 
     /* Configure priority and start threads */
     // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
