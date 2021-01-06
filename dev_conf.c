@@ -7,6 +7,7 @@
 
 #include "dev_conf.h"
 #include "uart_handler.h"
+#include "usb_handler.h"
 
 /* Device globals */
 VOS_HANDLE bus_spi = NULL;
@@ -68,14 +69,14 @@ void dev_conf_uart(uint32 baud)
 /* Prepare the USB stack */
 void dev_usb_start()
 {
+    usbhost_context_t usb_conf;
     if (usb == NULL)
     {
-        usbhost_context_t usb_conf;
         usb_conf.if_count = 2;
         usb_conf.ep_count = 4;
-        usb_conf.xfer_count = 2;
+        usb_conf.xfer_count = 1;
         usb_conf.iso_xfer_count = 0;
-        usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
+        // usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
         usb = vos_dev_open(VOS_DEV_USBHOST_1);
     }
 }
@@ -91,42 +92,39 @@ uint8 dev_usb_status()
     return state;
 }
 
-/* USB testing */
-void dev_usb_test()
+/* Reset a halted bulk endpoint */
+void dev_usb_reset_ep(usbhost_ep_handle ep)
 {
-    uint8 cnt = 0, i = 0;
-    uint16 st = 0;
+    uint8 status = 0;
     usbhost_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_USBHUB_HUB_PORT_COUNT;
-    iocb.handle.dif = NULL;
-    iocb.get = &cnt;
-    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-    {
-        uart_dbg("USB port cnt", cnt, 0);
-        for (i = 1; i <= cnt; i++)
-        {
-            iocb.ioctl_code = VOS_IOCTL_USBHUB_PORT_STATUS;
-            iocb.get = &st;
-            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-            {
-                uart_dbg("USB port status", i, st);
-            }
-            else uart_dbg("USB port status err", i, 1);
-        }
-    }
-    else uart_dbg("USB port cnt err", 1, 1);
+
+    iocb.handle.ep = ep;
+    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_CLEAR_ENDPOINT_TRANSFER;
+    status = vos_dev_ioctl(usb, &iocb);
+    uart_dbg("ep xfer clear", status, status);
+
+    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_CLEAR_ENDPOINT_CARRY;
+    status = vos_dev_ioctl(usb, &iocb);
+    uart_dbg("ep ep clear", status, status);
+
+    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_CLEAR_HOST_HALT;
+    status = vos_dev_ioctl(usb, &iocb);
+    uart_dbg("ep halt clear", status, status);
 }
 
-/* Wait and acquire a USB boot device with a specific serial number */
-uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms)
+/* Wait for and acquire a USB boot device */
+uint8 dev_usb_boot_wait(dev_usb_boot_t *dev, uint32 timeout_ms)
 {
+    uint8 status = 0, success = FALSE;
     usbhost_ioctl_cb_t iocb;
     usb_deviceRequest_t request;
     usb_deviceDescriptor_t descriptor;
-    usbhost_device_handle_ex if_query = 0, if_boot = 0;
+    usbhost_device_handle interface = NULL;
+    usbhost_ep_handle endpoint = NULL;
     usbhost_ioctl_cb_vid_pid_t vid_pid = { RPI_USB_VID, RPI_BOOT_PID };
 
     /* Prepare descriptor request */
+    vos_memset(&descriptor, 0, sizeof(usb_deviceDescriptor_t));
     request.bRequest = USB_REQUEST_CODE_GET_DESCRIPTOR;
     request.bmRequestType = USB_BMREQUESTTYPE_DEV_TO_HOST |
         USB_BMREQUESTTYPE_STANDARD |
@@ -135,63 +133,79 @@ uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms
     request.wIndex = 0x0000;
     request.wLength = 0x0012;
 
-    uart_dbg("Waiting for device...", 1, 1);
+    /* Get interface via VID/PID */
+    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_VID_PID;
+    iocb.handle.dif = NULL;
+    iocb.set = &vid_pid;
+    iocb.get = &interface;
 
-    /* Start querying the USB bus */
+    /* Try acquire the interface until timeout is reached */
     for(; timeout_ms > 250; timeout_ms -= 250)
     {
-        /* Try finding the device interface by VID and PID */
-        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_VID_PID;
-        iocb.handle.dif = NULL;
-        iocb.set = &vid_pid;
-        iocb.get = &if_query;
-        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && if_query != NULL)
-        {
-            /* If found, try to get the 2nd interface (the 1st might be mass storage instead) 
-            ** See Initialize_Device: https://github.com/raspberrypi/usbboot/blob/master/main.c */
-            if_boot = if_query;
-            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_NEXT_HANDLE;
-            iocb.handle.dif = if_query;
-            iocb.get = &if_query;
-            vos_dev_ioctl(usb, &iocb);
-            
-            /* If found, set it as primary interface, otherwise we should be okay */
-            if (if_query) if_boot = if_query;
-
-            /* Next, try get the control endpoint */
-            iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
-            iocb.handle.dif = if_boot;
-            iocb.get = &dev->ctrl;
-            if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-            {
-                /* Now get the descriptor and verify the serial number */
-                iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
-                iocb.handle.ep = dev->ctrl;
-                iocb.set = &request;
-                iocb.get = &descriptor;
-                if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-                {
-                    uart_dbg("Device serial number is", descriptor.iSerialNumber, descriptor.iSerialNumber);
-                    if (descriptor.iSerialNumber == serial_num)
-                    {
-                        /* Finally, get the bulk transfer endpoint */
-                        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
-                        iocb.handle.dif = if_boot;
-                        iocb.get = &dev->bulk;
-                        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-                        {
-                            return TRUE;
-                        }
-                    }
-                }
-            }
-        }
-        vos_delay_msecs(250);
+        status = vos_dev_ioctl(usb, &iocb);
+        status = (status == USBHOST_OK && interface != NULL);
+        if (status) break;
+        else vos_delay_msecs(250);
     }
 
-    uart_dbg("USB timeout", 1, 1);
+    /* Acquire control endpoint */
+    if (status)
+    {
+        uart_dbg("acq if", 1, 1);
+        dev->ctrl = NULL;
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_CONTROL_ENDPOINT_HANDLE;
+        iocb.handle.dif = interface;
+        iocb.set = NULL;
+        iocb.get = &dev->ctrl;
+        status = vos_dev_ioctl(usb, &iocb);
+        status = (status == USBHOST_OK && dev->ctrl != NULL);
+    }
 
-    return FALSE;
+    /* Save the serial number */
+    if (status)
+    {
+        uart_dbg("acq ctrl", 1, 1);
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
+        iocb.handle.ep = dev->ctrl;
+        iocb.set = &request;
+        iocb.get = &descriptor;
+        status = vos_dev_ioctl(usb, &iocb);
+        status = (status == USBHOST_OK);
+        dev->sn = descriptor.iSerialNumber;
+    }
+    
+    /* Acquire bulk-out endpoint */
+    if (status)
+    {
+        uart_dbg("acq sn", 1, 1);
+        dev->bulk = NULL;
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_BULK_OUT_ENDPOINT_HANDLE;
+        iocb.handle.dif = interface;
+        iocb.set = NULL;
+        iocb.get = &dev->bulk;
+        status = vos_dev_ioctl(usb, &iocb);
+        status = (status == USBHOST_OK && dev->bulk != NULL);
+        success = status;
+    }
+
+    /* Try to acquire the second bulk-out endpoint
+    ** For some reason, if there are two, the first one doesn't work
+    ** Could be related to the comment in Initialize_Device:
+    ** https://github.com/raspberrypi/usbboot/blob/master/main.c */
+    if (status)
+    {
+        uart_dbg("acq bulk", 1, 1);
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_NEXT_ENDPOINT_HANDLE;
+        iocb.handle.ep = dev->bulk;
+        iocb.get = &endpoint;
+        if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && endpoint != NULL)
+        {
+            dev->bulk = endpoint;
+        }
+        else uart_dbg("failed to acq bulk 2", 0, 0);
+    }
+
+    return success;
 }
 
 /* Reset RPi CPU

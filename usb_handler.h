@@ -8,13 +8,12 @@
 #ifndef _usb_handler_H_
 #define _usb_handler_H_
 
-#include "dev_conf.h"
+#define RPI_USB_VID 0x0A5C
+#define RPI_BOOT_PID 0x2764
+#define RPI_MSD_PID 0x0001
+#define RPI_BLOCK_LEN 512
 
-/* First bootloader init message */
-typedef struct {
-    uint32 length;
-    uint8 signature[20];
-} usb_boot_msg_t;
+extern unsigned char image_buf[];
 
 void usb_run_sequence();
 

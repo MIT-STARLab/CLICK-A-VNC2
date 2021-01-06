@@ -13,9 +13,6 @@
 #include "string.h"
 #include "stdio.h"
 
-/* Private variables */
-static uint8 uart_buf[PACKET_IMAGE_MAX_LEN];
-
 /* Pre-defined UART flow control packets (little endian) */
 static const uint32 UART_REPLY_PROCESSING[] = { PACKET_SYNC_MARKER_LE, 0x1502, 0x15BB0100 };
 static const uint32 UART_REPLY_RETRANSMIT[] = { PACKET_SYNC_MARKER_LE, 0x3002, 0xC6BB0100 };
@@ -50,10 +47,11 @@ void uart_test()
     uart = vos_dev_open(VOS_DEV_UART);
     dev_conf_uart(921600);
     dev_dma_acquire(uart);
+    uart_dbg("Boot...", 1, 1);
     for(;;)
     {
         uart_dbg("Waiting for packet...", 1, 1);
-        if (packet_process_blocking(uart, uart_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
+        if (packet_process_blocking(uart, image_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
         {
             uart_reply(UART_REPLY_PROCESSING);
             usb_run_sequence();

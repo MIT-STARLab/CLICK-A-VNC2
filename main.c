@@ -12,7 +12,7 @@
 #include "crc.h"
 
 #define IDLE_THREAD_STACK 512
-#define BUS_THREAD_STACK 2048
+#define BUS_THREAD_STACK 4096
 #define PAYLOAD_THREAD_STACK 1024
 #define HELPER_THREAD_STACK 512
 
@@ -21,6 +21,7 @@ void main()
     uart_context_t uart_conf;
     spislave_context_t spi0_conf;
     spislave_context_t spi1_conf;
+    usbhost_context_t usb_conf;
     
     /* Kernel & basic init */
     vos_init(50, VOS_TICK_INTERVAL, VOS_NUMBER_DEVICES);
@@ -35,11 +36,16 @@ void main()
     spi1_conf.slavenumber = SPI_SLAVE_1;
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+    usb_conf.if_count = 8;
+    usb_conf.ep_count = 16;
+    usb_conf.xfer_count = 4;
+    usb_conf.iso_xfer_count = 4;
 
     /* Driver init */
     uart_init(VOS_DEV_UART, &uart_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
+    usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
 
     /* Configure EMMC and interrupt GPIO as output and low */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);

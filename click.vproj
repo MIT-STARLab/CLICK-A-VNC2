@@ -711,7 +711,8 @@
 	</Files>
 	<BuildList>
 		<filename>uart_handler.c</filename>
-	</BuildList>	<Files>
+	</BuildList>
+	<Files>
 		<filename>usb_handler.c</filename>
 		<fileDir></fileDir>
 		<fileType>1</fileType>
@@ -730,14 +731,32 @@
 	</Files>
 	<BuildList>
 		<filename>usb_handler.h</filename>
+	</BuildList>	<Files>
+		<filename>bootloader.c</filename>
+		<fileDir></fileDir>
+		<fileType>1</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder></VirtualFolder>
+	</Files>
+	<BuildList>
+		<filename>bootloader.c</filename>
 	</BuildList>
-	
-	
-	
-	
+	<Files>
+		<filename>bootloader.h</filename>
+		<fileDir></fileDir>
+		<fileType>4</fileType>
+		<isFileDirty>false</isFileDirty>
+		<VirtualFolder></VirtualFolder>
+	</Files>
+	<BuildList>
+		<filename>bootloader.h</filename>
+	</BuildList>
 	<OpenFilesList>
 		<filename>spi_handler.c</filename>
-		<actvieTabIndex>0</actvieTabIndex>
+	</OpenFilesList>
+	<OpenFilesList>
+		<filename>usb_handler.c</filename>
+		<actvieTabIndex>1</actvieTabIndex>
 	</OpenFilesList>
 	<WatchVariableList>
 		<WatchVarName>payload_response_pending</WatchVarName>

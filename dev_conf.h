@@ -24,10 +24,6 @@
 #define GPIO_RPI_RESET_ACTIVE 0
 #define GPIO_RPI_RESET_INACTIVE 1
 
-#define RPI_USB_VID 0x0A5C
-#define RPI_BOOT_PID 0x2764
-#define RPI_MSD_PID 0x0001
-
 #include "vos.h"
 #include "SPISlave.h"
 #include "UART.h"
@@ -46,6 +42,7 @@ extern VOS_HANDLE boms;
 
 /* USB boot-stage device */
 typedef struct {
+    uint8 sn;
     usbhost_ep_handle ctrl;
     usbhost_ep_handle bulk;
 } dev_usb_boot_t;
@@ -60,10 +57,9 @@ void dev_usb_start();
 void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
-uint8 dev_usb_boot_wait(uint8 serial_num, dev_usb_boot_t *dev, uint32 timeout_ms);
 uint8 dev_usb_status();
+uint8 dev_usb_boot_wait(dev_usb_boot_t *dev, uint32 timeout_ms);
+void dev_usb_reset_ep(usbhost_ep_handle ep);
 void dev_rpi_reset();
-
-void dev_usb_test();
 
 #endif /* _dev_conf_H_ */
