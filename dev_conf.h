@@ -58,8 +58,10 @@ void dev_dma_acquire(VOS_HANDLE dev);
 void dev_dma_release(VOS_HANDLE dev);
 uint16 dev_rx_avail(VOS_HANDLE dev);
 uint8 dev_usb_status();
-uint8 dev_usb_boot_wait(dev_usb_boot_t *dev, uint32 timeout_ms);
+uint8 dev_usb_wait(uint32 timeout_ms);
+uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev);
 void dev_usb_reset_ep(usbhost_ep_handle ep);
+void dev_usb_force_enumeration();
 void dev_rpi_reset();
 
 #endif /* _dev_conf_H_ */

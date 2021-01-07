@@ -10,9 +10,7 @@
 #include "dev_conf.h"
 #include "packets.h"
 #include "uart_handler.h"
-
-/* Private variables */
-uint8 image_buf[PACKET_IMAGE_MAX_LEN];
+#include "crc.h"
 
 /* Control endpoint transfer during usb boot stage
 ** Used to signal how much data will be transmitted and to receive replies
@@ -97,57 +95,47 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint8 *buf, uint16 len)
 static uint8 usb_first_stage(dev_usb_boot_t *dev)
 {
     uint8 res = FALSE;
-    int usb_reply = -1;
-    uint16 i = 0, pos = 0, avail = 0;
-    struct usb_boot_msg_t {
-        int length;
-        uint8 signature[20];
-    } boot_msg;
-
-    /* Prepare boot message */
-    boot_msg.length = BOOTCODE_LEN;
-    vos_memset(boot_msg.signature, 0, 20);
+    uint16 i = 0, pos = 0, avail = 0, crc = 0xFFFF;
+    usb_boot_msg_t boot_msg = { BOOTCODE_LEN };
 
     /* Notify that boot message will be sent */
     res = usb_ctrl_xfer(dev->ctrl, NULL, sizeof(boot_msg));
 
     /* Send the init boot message */
-    if (res)
-    {
-        res = usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg));
-    }
+    res = res ? usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg)) : res;
 
     /* Notify that bootloader will be sent */
-    if (res)
-    {
-        res = usb_ctrl_xfer(dev->ctrl, NULL, BOOTCODE_LEN);
-    }
-
-    uart_dbg("bootloader ctrl", BOOTCODE_LEN, res);
+    res = res ? usb_ctrl_xfer(dev->ctrl, NULL, BOOTCODE_LEN) : res;
 
     /* Send the embedded bootloader binary */
     while (res && pos < BOOTCODE_LEN)
     {
-        avail = RPI_BLOCK_LEN;
-        if ((BOOTCODE_LEN - pos) < RPI_BLOCK_LEN)
+        avail = RPI_STAGE1_BLOCK_LEN;
+        if ((BOOTCODE_LEN - pos) < RPI_STAGE1_BLOCK_LEN)
         {
             avail = BOOTCODE_LEN - pos;
         }
+
+        /* Temporarily load from ROM into telemetry buffer */
         for (i = 0; i < avail; i++, pos++)
         {
-            image_buf[i] = bootcode_bin[pos];
+            tlm_buffer[i] = bootcode_bin[pos];
         }
-        res = usb_bulk_write(dev, image_buf, avail);
+
+        /* Write and update CRC for sanity check */
+        res = usb_bulk_write(dev, tlm_buffer, avail);
+        crc = crc_16_update(crc, tlm_buffer, avail);
     }
 
-    uart_dbg("bootloader write", pos, res);
+    /* Verify bootloader write */
+    res = (pos == BOOTCODE_LEN && crc == BOOTCODE_CRC);
 
-    /* Verify reply */
+    /* Verify USB reply */
     if (res)
     {
-        res = usb_ctrl_xfer(dev->ctrl, (uint8*) (&usb_reply), sizeof(usb_reply));
-        uart_dbg("read", (uint16) usb_reply, res);
-        if (usb_reply == 0) return TRUE;
+        vos_delay_msecs(1000);
+        res = usb_ctrl_xfer(dev->ctrl, (uint8*) (&boot_msg.msg), 4);
+        if (boot_msg.msg == 0) return TRUE;
     }
 
     return FALSE;
@@ -156,20 +144,22 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
 /* Enter the reprogramming sequence */
 void usb_run_sequence()
 {
-    uint8 success = FALSE;
-    dev_usb_boot_t dev;
+    uint8 success = FALSE, stage = 0;
+    dev_usb_boot_t dev = { 0 };
 
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
     vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
 
-    /* Start the USB stack and wait for enumeration */
+    /* Start the USB stack and wait for connection */
     dev_usb_start();
-    // vos_delay_msecs(2000);
+    vos_delay_msecs(250);
 
-    /* Check port status */
+    /* Check port state */
     if (dev_usb_status() == PORT_STATE_DISCONNECTED)
     {
+        uart_dbg("resetting RPi", 0, 0);
+
         /* Reset the RPi into USB bootloader mode.
         ** Following the reset, the USB enumeration happens after roughly 8-10 sec.
         ** However, due to some internal USB bug, the USB stack crashes the system when it happens.
@@ -185,29 +175,35 @@ void usb_run_sequence()
         /* Just wait for death... */
         vos_delay_msecs(20000);
     }
-    else    
+
+    /* Begin USB bootloader stage */
+    else
     {
-        /* Begin USB bootloader stage */
-        if (dev_usb_boot_wait(&dev, 5000))
+        while (dev.sn < 1)
         {
-            uart_dbg("Device with serial", dev.sn, 0);
-            if (dev.sn == 0)
+            /* Wait for USB enumeration to complete */
+            success = dev_usb_wait(10000);
+            // uart_dbg("enumeration cnt", success, 1);
+
+            if (success) success = dev_usb_boot_acquire(&dev);
+            else uart_dbg("enumeration timeout", 1, 1);
+
+            if (success)
             {
-                success = usb_first_stage(&dev);
-                if (success)
+                uart_dbg("device with serial", dev.sn, 0);
+                if (dev.sn == 0 && stage == 0)
                 {
-                    uart_dbg("Waiting for 2nd stage", 0, 0);
-                    vos_delay_msecs(1000);
-                    if (dev_usb_boot_wait(&dev, 5000))
-                    {
-                        uart_dbg("Device with serial", dev.sn, 0);
-                    }
-                    else uart_dbg("Timeout", 0, 0);
+                    success = usb_first_stage(&dev);
                 }
-                else uart_dbg("First stage failed", 0, 0);
             }
-            else uart_dbg("Unknown sn", dev.sn, dev.sn);
+
+            if (success)
+            {
+                if (dev.sn == 0) stage = 1;
+                uart_dbg("stage finished", 1, 1);
+                vos_delay_msecs(1000);
+                dev_usb_force_enumeration();
+            }
         }
-        else uart_dbg("Timeout", 0, 0);
     }
 }

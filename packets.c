@@ -9,6 +9,10 @@
 #include "dev_conf.h"
 #include "crc.h"
 
+/* Global buffers */
+uint8 cmd_buffer[PACKET_TC_MAX_LEN];
+uint8 tlm_buffer[PACKET_TM_MAX_LEN];
+
 /* Process new packet data */
 static void packet_process_data(uint8 *data, uint16 len, packet_proc_t *proc)
 {

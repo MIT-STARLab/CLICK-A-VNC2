@@ -47,11 +47,11 @@ void uart_test()
     uart = vos_dev_open(VOS_DEV_UART);
     dev_conf_uart(921600);
     dev_dma_acquire(uart);
-    uart_dbg("Boot...", 1, 1);
+    uart_dbg("boot...", 1, 1);
     for(;;)
     {
-        uart_dbg("Waiting for packet...", 1, 1);
-        if (packet_process_blocking(uart, image_buf, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
+        uart_dbg("waiting for packet...", 1, 1);
+        if (packet_process_blocking(uart, cmd_buffer, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
         {
             uart_reply(UART_REPLY_PROCESSING);
             usb_run_sequence();

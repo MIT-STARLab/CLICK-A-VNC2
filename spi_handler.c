@@ -6,13 +6,11 @@
 */
 
 #include "spi_handler.h"
-#include "uart_handler.h"
+#include "usb_handler.h"
 #include "packets.h"
 #include "dev_conf.h"
 
 /* Private variables */
-static uint8 bus_buf[PACKET_TC_MAX_LEN];
-static uint8 payload_buf[PACKET_TM_MAX_LEN];
 static vos_mutex_t bus_write_busy;
 static vos_mutex_t payload_read_busy;
 static vos_mutex_t payload_read_block;
@@ -53,7 +51,7 @@ void spi_handler_bus()
     for(;;)
     {
         /* Wait for packet from bus */
-        if((pkt_len = packet_process_blocking(bus_spi, bus_buf,
+        if((pkt_len = packet_process_blocking(bus_spi, cmd_buffer,
             PACKET_TC_MAX_LEN, &pkt_start, SPI_NO_DATA_LIMIT)))
         {
             /* Wait for a bus write to finish on other thread (if any), then release DMA */
@@ -61,13 +59,13 @@ void spi_handler_bus()
             dev_dma_release(bus_spi);
 
             /* Initialize and run reprogramming sequence if requested */
-            // if (spi_is_reprog_command(pkt_start, pkt_len))
-            // {
-            //     usb_run_sequence();
-            // }
+            if (spi_is_reprog_command(pkt_start, pkt_len))
+            {
+                usb_run_sequence();
+            }
 
             /* Otherwise start a regular read-write on payload SPI */
-            // else
+            else
             {
                 /* Acquire DMA and unblock payload read operation on other thread */
                 dev_dma_acquire(payload_spi);
@@ -117,7 +115,7 @@ void spi_handler_payload()
         vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
 
         /* Wait for packet from payload */
-        pkt_len = packet_process_blocking(payload_spi, payload_buf,
+        pkt_len = packet_process_blocking(payload_spi, tlm_buffer,
             PACKET_TM_MAX_LEN, &pkt_start, SPI_NO_DATA_LIMIT);
         vos_unlock_mutex(&payload_read_busy);
 

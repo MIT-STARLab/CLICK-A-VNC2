@@ -50,6 +50,10 @@ typedef struct {
     packet_header_t *header;
 } packet_proc_t;
 
+/* Global buffers */
+extern uint8 cmd_buffer[];
+extern uint8 tlm_buffer[];
+
 /* Helper packet functions */
 uint16 packet_process_blocking(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint16 no_data_limit);
 uint16 packet_process_timeout(VOS_HANDLE dev, uint8 *buf, uint16 bufsize, uint8 **start, uint32 timeout_ms);
