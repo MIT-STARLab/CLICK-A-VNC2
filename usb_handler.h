@@ -10,11 +10,20 @@
 
 #include "vos.h"
 
-#define RPI_USB_VID 0x0A5C
-#define RPI_BOOT_PID 0x2764
-#define RPI_MSD_PID 0x0001
-#define RPI_DEFAULT_BLOCK_LEN 512
-#define RPI_STAGE1_BLOCK_LEN 4096
+/* USB hardware info */
+#define USB_VID 0x0A5C
+#define USB_BOOT_PID 0x2764
+#define USB_MSD_PID 0x0001
+#define USB_EMMC_BLOCK_LEN 512
+#define USB_STAGE1_BLOCK_LEN 4096
+
+/* First stage bootcode info */
+#define USB_BOOTCODE_LEN 16702
+#define USB_BOOTCODE_CRC 0xB1A4
+
+/* Second stage MSD bootloader info */
+#define USB_MSD_ELF_LEN 428476
+#define USB_MSD_ELF_CRC 0xCC3B
 
 /* USB boot message format */
 typedef struct {

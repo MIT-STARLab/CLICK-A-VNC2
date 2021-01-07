@@ -96,25 +96,22 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
 {
     uint8 res = FALSE;
     uint16 i = 0, pos = 0, avail = 0, crc = 0xFFFF;
-    usb_boot_msg_t boot_msg = { BOOTCODE_LEN };
+    usb_boot_msg_t boot_msg = { USB_BOOTCODE_LEN };
 
     /* Notify that boot message will be sent */
     res = usb_ctrl_xfer(dev->ctrl, NULL, sizeof(boot_msg));
 
     /* Send the init boot message */
-    res = res ? usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg)) : res;
+    if (res) res = usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg));
 
     /* Notify that bootloader will be sent */
-    res = res ? usb_ctrl_xfer(dev->ctrl, NULL, BOOTCODE_LEN) : res;
+    if (res) res = usb_ctrl_xfer(dev->ctrl, NULL, USB_BOOTCODE_LEN);
 
     /* Send the embedded bootloader binary */
-    while (res && pos < BOOTCODE_LEN)
+    while (res && pos < USB_BOOTCODE_LEN)
     {
-        avail = RPI_STAGE1_BLOCK_LEN;
-        if ((BOOTCODE_LEN - pos) < RPI_STAGE1_BLOCK_LEN)
-        {
-            avail = BOOTCODE_LEN - pos;
-        }
+        avail = USB_BOOTCODE_LEN - pos;
+        avail = avail > USB_STAGE1_BLOCK_LEN ? USB_STAGE1_BLOCK_LEN : avail;
 
         /* Temporarily load from ROM into telemetry buffer */
         for (i = 0; i < avail; i++, pos++)
@@ -128,24 +125,35 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
     }
 
     /* Verify bootloader write */
-    res = (pos == BOOTCODE_LEN && crc == BOOTCODE_CRC);
-
-    /* Verify USB reply */
-    if (res)
+    if (res && pos == USB_BOOTCODE_LEN && crc == USB_BOOTCODE_CRC)
     {
+        /* Verify USB reply */
         vos_delay_msecs(1000);
         res = usb_ctrl_xfer(dev->ctrl, (uint8*) (&boot_msg.msg), 4);
-        if (boot_msg.msg == 0) return TRUE;
+        if (res && boot_msg.msg == 0)
+        {
+            vos_delay_msecs(1000);
+            dev_usb_force_enumeration();
+            return TRUE;
+        }
     }
 
     return FALSE;
 }
 
+/* First stage - send the boot message and the embedded bootloader code */
+static uint8 usb_second_stage(dev_usb_boot_t *dev)
+{
+
+
+    return TRUE;
+}
+
 /* Enter the reprogramming sequence */
 void usb_run_sequence()
 {
-    uint8 success = FALSE, stage = 0;
-    dev_usb_boot_t dev = { 0 };
+    uint8 res = FALSE;
+    dev_usb_boot_t dev = { 0, 0, 0 };
 
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
@@ -158,8 +166,6 @@ void usb_run_sequence()
     /* Check port state */
     if (dev_usb_status() == PORT_STATE_DISCONNECTED)
     {
-        uart_dbg("resetting RPi", 0, 0);
-
         /* Reset the RPi into USB bootloader mode.
         ** Following the reset, the USB enumeration happens after roughly 8-10 sec.
         ** However, due to some internal USB bug, the USB stack crashes the system when it happens.
@@ -179,31 +185,22 @@ void usb_run_sequence()
     /* Begin USB bootloader stage */
     else
     {
-        while (dev.sn < 1)
-        {
-            /* Wait for USB enumeration to complete */
-            success = dev_usb_wait(10000);
-            // uart_dbg("enumeration cnt", success, 1);
+        /* Wait and acquire the first USB boot device */
+        res = dev_usb_wait(10000);
+        if (res) res = dev_usb_boot_acquire(&dev);
 
-            if (success) success = dev_usb_boot_acquire(&dev);
-            else uart_dbg("enumeration timeout", 1, 1);
+        /* If serial numbers equals zero, run first stage */
+        if (res && dev.sn == 0) res = usb_first_stage(&dev);
+        else res = FALSE;
 
-            if (success)
-            {
-                uart_dbg("device with serial", dev.sn, 0);
-                if (dev.sn == 0 && stage == 0)
-                {
-                    success = usb_first_stage(&dev);
-                }
-            }
+        /* Repeat for second-stage boot device */
+        if (res) res = dev_usb_wait(10000);
+        if (res) res = dev_usb_boot_acquire(&dev);
 
-            if (success)
-            {
-                if (dev.sn == 0) stage = 1;
-                uart_dbg("stage finished", 1, 1);
-                vos_delay_msecs(1000);
-                dev_usb_force_enumeration();
-            }
-        }
+        /* If serial numbers equals one, run second stage */
+        if (res && dev.sn == 1) res = usb_second_stage(&dev);
+        else res = FALSE;
+
+        uart_dbg("result", res, res);
     }
 }

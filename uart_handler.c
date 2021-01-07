@@ -13,12 +13,6 @@
 #include "string.h"
 #include "stdio.h"
 
-/* Pre-defined UART flow control packets (little endian) */
-static const uint32 UART_REPLY_PROCESSING[] = { PACKET_SYNC_MARKER_LE, 0x1502, 0x15BB0100 };
-static const uint32 UART_REPLY_RETRANSMIT[] = { PACKET_SYNC_MARKER_LE, 0x3002, 0xC6BB0100 };
-static const uint32 UART_REPLY_HEARTBEAT[]  = { PACKET_SYNC_MARKER_LE, 0x2502, 0x8D5C0100 };
-static const uint32 UART_REPLY_READY[]      = { PACKET_SYNC_MARKER_LE, 0x2002, 0x83E40100 };
-
 /* Debugging print */
 void uart_dbg(char *msg, uint16 number1, uint16 number2)
 {
@@ -34,12 +28,6 @@ void uart_dbg(char *msg, uint16 number1, uint16 number2)
     vos_dev_write(uart, (uint8*) buf, msg_len + PACKET_OVERHEAD, NULL);
 }
 
-/* UART flow control reply */
-static void uart_reply(const uint32 *pkt)
-{
-    vos_dev_write(uart, (uint8*) pkt, PACKET_UART_REPLY_LEN, NULL);
-}
-
 /* Test thread */
 void uart_test()
 {
@@ -53,8 +41,28 @@ void uart_test()
         uart_dbg("waiting for packet...", 1, 1);
         if (packet_process_blocking(uart, cmd_buffer, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
         {
-            uart_reply(UART_REPLY_PROCESSING);
+            uart_reply(UART_PROC_APID_LSB, 0, UART_PROC_CRC);
             usb_run_sequence();
         }
     }
+}
+
+/* UART reprogramming flow control reply */
+uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
+{
+    /* Uses the smaller global command buffer */
+    packet_header_t *hdr = (packet_header_t*) (cmd_buffer + PACKET_SYNC_LEN);
+    vos_memset(hdr, 0, sizeof(packet_header_t));
+    PACKET_ADD_SYNC(cmd_buffer);
+    
+    /* Write header and CRC */
+    hdr->apid_msb = 2;
+    hdr->apid_lsb = apid_lsb;
+    hdr->seq_msb = (sequence << 8) & 0x3F;
+    hdr->seq_lsb = sequence & 0xFF;
+    hdr->len_lsb = 1;
+    cmd_buffer[PACKET_UART_REPLY_LEN - 2] = crc << 8;
+    cmd_buffer[PACKET_UART_REPLY_LEN - 1] = crc & 0xFF;
+
+    return (vos_dev_write(uart, cmd_buffer, PACKET_UART_REPLY_LEN, NULL) == UART_OK);
 }

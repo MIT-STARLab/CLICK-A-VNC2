@@ -151,7 +151,7 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
     usb_deviceDescriptor_t descriptor;
     usbhost_device_handle interface = NULL;
     usbhost_ep_handle endpoint = NULL;
-    usbhost_ioctl_cb_vid_pid_t vid_pid = { RPI_USB_VID, RPI_BOOT_PID };
+    usbhost_ioctl_cb_vid_pid_t vid_pid = { USB_VID, USB_BOOT_PID };
 
     /* Prepare descriptor request */
     vos_memset(dev, 0, sizeof(dev_usb_boot_t));
@@ -207,8 +207,8 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
         success = status;
     }
 
-    /* Try to acquire the second bulk-out endpoint
-    ** For some reason, if there are two, the first one doesn't work
+    /* Try to acquire the second bulk-out endpoint.
+    ** For some reason, if there are two, the first one doesn't work.
     ** Could be related to the comment in Initialize_Device:
     ** https://github.com/raspberrypi/usbboot/blob/master/main.c */
     if (status)

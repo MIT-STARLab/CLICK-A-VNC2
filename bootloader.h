@@ -10,9 +10,6 @@
 #ifndef _bootloader_H_
 #define _bootloader_H_
 
-#define BOOTCODE_LEN 16702
-#define BOOTCODE_CRC 0xB1A4
-
 /* Editor IntelliSense doesn't understand rom flag */
 #ifndef __INTELLISENSE__
 
