@@ -15,7 +15,12 @@
 #define USB_BOOT_PID 0x2764
 #define USB_MSD_PID 0x0001
 #define USB_EMMC_BLOCK_LEN 512
-#define USB_STAGE1_BLOCK_LEN 4096
+
+/* Stage 1 block limited by telemetry RAM buffer size */
+#define USB_STAGE1_BLOCK_LEN (8 * USB_EMMC_BLOCK_LEN)
+
+/* Stage 2 block slightly smaller to prevent buffer overrun due to UART */
+#define USB_STAGE2_BLOCK_LEN (7 * USB_EMMC_BLOCK_LEN)
 
 /* First stage bootcode info */
 #define USB_BOOTCODE_LEN 16702

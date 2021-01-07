@@ -66,3 +66,47 @@ uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
 
     return (vos_dev_write(uart, cmd_buffer, PACKET_UART_REPLY_LEN, NULL) == UART_OK);
 }
+
+/* Wait for a new block of data from UART */
+uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
+{
+    uint8 res = TRUE, failed = FALSE, retries = UART_MAX_RETRY;
+    uint16 pkt_len = 0;
+    uint8 *pkt_start = NULL;
+    packet_header_t *header = NULL;
+
+    while (res && retries > 0 && proc->data_len < proc->block_len)
+    {
+        /* Get next blob from the bus */
+        if (proc->blob_num > 0)
+        {
+            /* Notify we are ready for next blob (unless failed previously) */
+            if (!failed) res = uart_reply(UART_READY_APID_LSB, proc->blob_seq, UART_READY_CRC);
+            if (res) pkt_len = packet_process_timeout(uart, cmd_buffer,
+                PACKET_IMAGE_MAX_LEN, &pkt_start, UART_TIMEOUT_MS);
+            else break;
+        }
+
+        /* Wait for first blob from the bus */
+        else pkt_len = packet_process_timeout(uart, cmd_buffer,
+            PACKET_IMAGE_MAX_LEN, &pkt_start, initial_timeout_ms);
+
+        /* If failed, retry up to 3 times per ICD */
+        if (pkt_len == 0)
+        {
+            failed = TRUE;
+            retries--;
+            res = uart_reply(UART_RETRANSMIT_APID_LSB, proc->blob_seq, UART_RETRANSMIT_CRC);
+        }
+
+        /* Otherwise process new data */
+        else
+        {
+            failed = FALSE;
+            header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
+            proc->blob_num++;
+            // ...
+        }
+    }
+
+}
