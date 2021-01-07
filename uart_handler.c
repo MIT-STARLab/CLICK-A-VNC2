@@ -71,7 +71,7 @@ uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
 uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
 {
     uint8 res = TRUE, failed = FALSE, retries = UART_MAX_RETRY;
-    uint16 pkt_len = 0;
+    uint16 pkt_len = 0, apid = 0;
     uint8 *pkt_start = NULL;
     packet_header_t *header = NULL;
 
@@ -91,22 +91,29 @@ uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
         else pkt_len = packet_process_timeout(uart, cmd_buffer,
             PACKET_IMAGE_MAX_LEN, &pkt_start, initial_timeout_ms);
 
-        /* If failed, retry up to 3 times per ICD */
-        if (pkt_len == 0)
+        /* Verify packet length and APID */
+        if (pkt_len)
         {
-            failed = TRUE;
+            header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
+            apid = (header->apid_msb << 8) | header->apid_lsb;
+            failed = (apid != UART_BLOB_APID);
+        }
+        else failed = TRUE;
+
+        /* If failed, retry up to 3 times per ICD */
+        if (failed)
+        {
             retries--;
             res = uart_reply(UART_RETRANSMIT_APID_LSB, proc->blob_seq, UART_RETRANSMIT_CRC);
         }
 
-        /* Otherwise process new data */
+        /* Otherwise, process new data */
         else
-        {
-            failed = FALSE;
-            header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
+        {            
             proc->blob_num++;
             // ...
         }
     }
 
+    return res;
 }

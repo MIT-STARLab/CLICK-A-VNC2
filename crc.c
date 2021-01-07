@@ -6,13 +6,10 @@
 */
 
 #include "crc.h"
-#include "uart_handler.h"
+#include "helpers.h"
 
-/* Pre-calculated CRC-16/CCITT-FALSE polynomial table, stored in ROM
-** Editor IntelliSense doesn't understand rom flag */
-#ifndef __INTELLISENSE__
-
-rom uint16 crc_16_rom_table[256] =
+/* Pre-calculated CRC-16/CCITT-FALSE polynomial table, stored in ROM */
+ROM uint16 crc_16_rom_table[256] =
 {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
@@ -48,16 +45,11 @@ rom uint16 crc_16_rom_table[256] =
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
 
-#else  /* __INTELLISENSE__ */
-
-const uint16 crc_16_rom_table[];
-
-#endif  /* __INTELLISENSE__ */
-
+/* Pointer to RAM copy of the table */
 static uint16 *crc_16_ram_table;
 
 /* Load the CRC table into RAM on boot
-** Testing revealed that after a watchdog reset the table was corrupt if declared in RAM...? */
+** Testing revealed that if table was declared in RAM then it got corrupt after watchdog reset...? */
 void crc_16_load_table()
 {
     uint16 i = 0;

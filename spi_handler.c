@@ -9,6 +9,7 @@
 #include "usb_handler.h"
 #include "packets.h"
 #include "dev_conf.h"
+#include "helpers.h"
 
 /* Private variables */
 static vos_mutex_t bus_write_busy;
@@ -28,10 +29,7 @@ static uint8 spi_is_reprog_command(uint8 *pkt, uint16 pkt_len)
         /* Read header and check APID */
         header = (packet_header_t*) (pkt + PACKET_SYNC_LEN);
         apid = (header->apid_msb << 8) | header->apid_lsb;
-        if (apid == SPI_REPROG_APID)
-        {
-            return TRUE;
-        }
+        return (apid == SPI_REPROG_APID);
     }
     return FALSE;
 }
@@ -138,9 +136,7 @@ void spi_handler_watchdog()
     for(;;)
     {
         vos_delay_msecs(1000);
-        #ifndef __INTELLISENSE__
-        VOS_ENTER_CRITICAL_SECTION
-        #endif
+        ENTER_CRITICAL_SECTION
         if (payload_tx_cnt != prev_cnt)
         {
             prev_cnt = payload_tx_cnt;
@@ -151,8 +147,6 @@ void spi_handler_watchdog()
             interrupt_bit ^= 1;
             vos_gpio_write_pin(GPIO_RPI_IRQ, interrupt_bit);
         }
-        #ifndef __INTELLISENSE__
-        VOS_EXIT_CRITICAL_SECTION
-        #endif
+        EXIT_CRITICAL_SECTION
     }
 }
