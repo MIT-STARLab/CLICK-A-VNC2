@@ -92,15 +92,6 @@ uint8 dev_usb_status()
     return state;
 }
 
-/* Force USB enumeration */
-void dev_usb_force_enumeration()
-{
-    usbhost_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_USBHOST_ENUMERATE;
-    iocb.handle.dif = NULL;
-    vos_dev_ioctl(usb, &iocb);
-}
-
 /* Reset a halted endpoint */
 void dev_usb_reset_ep(usbhost_ep_handle ep)
 {

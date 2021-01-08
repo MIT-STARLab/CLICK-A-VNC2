@@ -9,7 +9,7 @@ trash_len = 4
 sync = bytearray([0x35, 0x2E, 0xF8, 0x53])
 
 def create_pkt(data):
-    payload_len = len(data) + trash_len + 2
+    payload_len = 6 + len(data) + trash_len + 2
     buf = bytearray()
     buf.append(0x02)
     buf.append(0x00)
@@ -17,6 +17,7 @@ def create_pkt(data):
     buf.append(0x00)
     buf.append(((payload_len-1) >> 8) & 0xFF)
     buf.append((payload_len-1) & 0xFF)
+    buf.extend(bytearray([0]*6))
     buf.extend(data)
     buf.extend(bytearray([0]*trash_len))
     crc = crc16.calc(buf)
@@ -53,10 +54,10 @@ def read_pkts(uart):
         apid, data = process_pkt(uart)
         if apid == 0:
             print("[VNC2L] " + data.decode("utf-8"))
+        elif apid == 0x220:
+            break
         else:
             print("[" + "0x{:03X}".format(apid) + "] ")
-        if apid == 0x220:
-            break
 
 if __name__ == "__main__":
     uart = serial.Serial(port, 921600, timeout = 1)

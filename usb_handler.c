@@ -117,12 +117,10 @@ static uint8 usb_finalize_boot_stage(dev_usb_boot_t *dev)
     int reply = -1;
 
     /* Verify USB reply */
-    vos_delay_msecs(1000);
     if (usb_ctrl_xfer(dev->ctrl, (uint8*) (&reply), 4) && reply == 0)
     {
-        /* If OK, wait and force USB re-enumeration */
+        /* If OK, wait for USB re-enumeration */
         vos_delay_msecs(1000);
-        dev_usb_force_enumeration();
         return TRUE;
     }
 
@@ -170,10 +168,13 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
     uint8 res = FALSE;
     uint16 crc = 0xFFFF;
     uint32 sent = 0;
+    int reply = -1;
+
+    uart_dbg("waiting for uart", 0, 0);
 
     /* Wait for the first block with longer timeout */
     proc->block_len = USB_STAGE2_BLOCK_LEN;
-    res = uart_get_block(&proc, 10000);
+    res = uart_get_block(proc, 10000);
 
     /* Prepare bootloader transfer */
     if (res) res = usb_prepare_boot_stage(dev, USB_MSD_ELF_LEN);
@@ -198,7 +199,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
             /* Request more UART data */
             if (sent < USB_MSD_ELF_LEN)
             {
-                res = uart_get_block(&proc, UART_TIMEOUT_MS);
+                res = uart_get_block(proc, UART_TIMEOUT_MS);
             }
         }
     }
@@ -246,7 +247,7 @@ void usb_run_sequence()
         vos_delay_msecs(20000);
     }
 
-    /* Begin USB bootloader stage */
+    /* Begin USB sequence */
     else
     {
         /* Wait and acquire the first USB boot device */
@@ -258,13 +259,15 @@ void usb_run_sequence()
         else res = FALSE;
 
         /* Repeat for second-stage boot device */
-        if (res) res = dev_usb_wait(10000);
+        if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boot_acquire(&dev);
 
         /* If serial numbers equals one, run second stage */
         if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);
         else res = FALSE;
 
-        uart_dbg("result", res, res);
+        /* Repeat for third-stage mass storage device */
+        if (res) res = dev_usb_wait(5000);
+
     }
 }
