@@ -286,7 +286,21 @@ void dev_usb_cleanup()
     }
 }
 
-/* Reset RPi CPU
+/* Reset RPi CPU */
+void dev_rpi_common_reset()
+{
+    /* Configure pin as output */
+    vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
+
+    /* Run reset sequence */
+    vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
+    vos_delay_msecs(100);
+    vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_ACTIVE);
+    vos_delay_msecs(100);
+    vos_gpio_write_pin(GPIO_RPI_RESET, GPIO_RPI_RESET_INACTIVE);
+}
+
+/* Reset RPi CPU into USB boot mode
 ** Needs to be reset twice with about 2 sec delay for some reason
 ** Afterward, the USB enumeration takes about 8-10 sec */
 void dev_rpi_bootloader_reset()

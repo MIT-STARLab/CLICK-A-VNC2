@@ -181,7 +181,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 
     /* Wait for the first block with longer UART timeout */
     proc->block_len = USB_STAGE2_3_BLOCK_LEN;
-    res = uart_get_block(proc, 10000);
+    res = uart_get_block(proc, 30000);
 
     /* Prepare bootloader transfer */
     if (res) res = usb_prepare_boot_stage(dev, USB_MSD_ELF_LEN);
@@ -253,7 +253,7 @@ static uint8 usb_third_stage(uart_proc_t *proc)
         if (res) res = usb_msd_write(sector, tlm_buffer, proc->block_len);
         if (res) sector += cluster_len;
 
-        if (sector % 2048 == 0)
+        if (sector % 2051 == 0)
         {
             uart_dbg("MB sent", (uint16) (sector / 2048), 0);
         }
@@ -319,12 +319,15 @@ void usb_run_sequence()
         if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boms_acquire();
         if (res) res = usb_third_stage(&proc);
-        if (res) dev_usb_cleanup();
+
+        /* Close USB driver */
+        dev_usb_cleanup();
 
         uart_dbg("result", res, res);
 
-        /* Drive EMMC_DISABLE back high by setting Select low */
+        /* Drive EMMC_DISABLE back high and reset RPi */
         vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
+        dev_rpi_common_reset();
 
         /* Reboot VNC2 after completion */
         vos_reset_vnc2();

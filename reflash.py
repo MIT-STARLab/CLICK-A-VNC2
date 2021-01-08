@@ -61,11 +61,10 @@ def read_pkts(uart):
 
 if __name__ == "__main__":
     uart = serial.Serial(port, 921600, timeout = 1)
-    with open("msd.elf", "rb") as msd:
+    with open("click_golden.img", "rb") as msd:
         print("Awaiting response...")
         while True:
             blob = msd.read(blob_len)
-            if len(blob) == 0:
-                break
-            uart.write(create_pkt(blob))
+            if len(blob) > 0:
+                uart.write(create_pkt(blob))
             read_pkts(uart)
