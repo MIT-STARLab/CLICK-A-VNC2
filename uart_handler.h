@@ -10,7 +10,7 @@
 
 #include "vos.h"
 
-#define UART_TIMEOUT_MS 250
+#define UART_TIMEOUT_MS 1000
 #define UART_MAX_RETRY 3
 
 /* Reprogramming APIDs */

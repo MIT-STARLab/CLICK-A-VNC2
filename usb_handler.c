@@ -95,7 +95,7 @@ static uint8 usb_msd_write(unsigned long sector, uint8 *buf, uint16 len)
     tx.s = &sem;
     tx.do_phases = MSI_PHASE_ALL;
 
-    status = vos_dev_read(boms, (uint8*) (&tx), sizeof(msi_xfer_cb_t), NULL);
+    status = vos_dev_write(boms, (uint8*) (&tx), sizeof(msi_xfer_cb_t), NULL);
     return (status == MSI_OK && (tx.status & BOMS_HC_CC_ERROR) == 0);
 }
 
@@ -180,7 +180,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
     uart_dbg("waiting for uart", 0, 0);
 
     /* Wait for the first block with longer UART timeout */
-    proc->block_len = USB_STAGE2_BLOCK_LEN;
+    proc->block_len = USB_STAGE2_3_BLOCK_LEN;
     res = uart_get_block(proc, 10000);
 
     /* Prepare bootloader transfer */
@@ -198,7 +198,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
             sent += proc->block_len;
 
             /* Adjust block size for last write */
-            if ((USB_MSD_ELF_LEN - sent) < USB_STAGE2_BLOCK_LEN)
+            if ((USB_MSD_ELF_LEN - sent) < USB_STAGE2_3_BLOCK_LEN)
             {
                 proc->block_len = USB_MSD_ELF_LEN - sent;
             }
@@ -223,14 +223,43 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 /* Third stage - write golden image, received through UART */
 static uint8 usb_third_stage(uart_proc_t *proc)
 {
-    uint8 res = FALSE;
+    uint8 res = FALSE, cluster_len = 0;
+    uint32 image_sectors = 0;
+    unsigned long sector = 0;
 
-    res = usb_msd_write(0, tlm_buffer, USB_EMMC_BLOCK_LEN);
+    /* Get image size (in sectors).
+    ** Encoded as a 4 byte integer after msd.elf, before the golden image starts */
+    proc->block_len = 4;
+    res = uart_get_block(proc, UART_TIMEOUT_MS);
+    if (res) image_sectors = *((uint32*) tlm_buffer);
+    res = (image_sectors > 0);
 
-    uart_dbg("rd 1", 0, (tlm_buffer[0] << 8) | tlm_buffer[1]);
-    uart_dbg("rd 2", 0, (tlm_buffer[2] << 8) | tlm_buffer[3]);
+    /* Default block size */
+    cluster_len = USB_STAGE2_3_CLUSTER_LEN;
+    proc->block_len = USB_STAGE2_3_BLOCK_LEN;
 
-    return res;
+    /* Start golden image write loop */
+    while (res && sector < image_sectors)
+    {
+        /* Adjust block size for last write */
+        if ((image_sectors - sector) < USB_STAGE2_3_CLUSTER_LEN)
+        {
+            cluster_len = image_sectors - sector;
+            proc->block_len = cluster_len * USB_EMMC_SECTOR_LEN;
+        }
+
+        /* Get UART data and write to USB MSD */
+        res = uart_get_block(proc, UART_TIMEOUT_MS);
+        if (res) res = usb_msd_write(sector, tlm_buffer, proc->block_len);
+        if (res) sector += cluster_len;
+
+        if (sector % 2048 == 0)
+        {
+            uart_dbg("MB sent", (uint16) (sector / 2048), 0);
+        }
+    }
+
+    return (res && sector == image_sectors);
 }
 
 /* Enter the reprogramming sequence */
@@ -261,7 +290,7 @@ void usb_run_sequence()
         ** The expiration time is 2^bitPos / 48e6; bitPos is given as argument below.
         ** bitPos of 29 results in a reset after about 11 sec */
         vos_wdt_enable(29);
-        dev_rpi_reset();
+        dev_rpi_bootloader_reset();
 
         /* Just wait for death... */
         vos_delay_msecs(20000);
@@ -290,8 +319,14 @@ void usb_run_sequence()
         if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boms_acquire();
         if (res) res = usb_third_stage(&proc);
+        if (res) dev_usb_cleanup();
 
         uart_dbg("result", res, res);
 
+        /* Drive EMMC_DISABLE back high by setting Select low */
+        vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
+
+        /* Reboot VNC2 after completion */
+        vos_reset_vnc2();
     }
 }

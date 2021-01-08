@@ -110,7 +110,7 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
             header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
             proc->blob_seq = (header->seq_msb << 8) | header->seq_lsb;
             apid = (header->apid_msb << 8) | header->apid_lsb;
-            failed = (apid != UART_BLOB_APID || blob_size > USB_EMMC_BLOCK_LEN);
+            failed = (apid != UART_BLOB_APID || blob_size > USB_EMMC_SECTOR_LEN);
         }
         else failed = TRUE;
 
@@ -118,13 +118,15 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
         if (failed)
         {
             retries--;
+            vos_delay_msecs(1000);
             res = uart_reply(UART_RETRANSMIT_APID_LSB, proc->blob_seq, UART_RETRANSMIT_CRC);
         }
 
         /* Otherwise, process new data
         ** TODO: Fix blob len after BCT FSW update */
         else
-        {            
+        {
+            retries = UART_MAX_RETRY;
             vos_memcpy(tlm_buffer + proc->data_len, pkt_start + PACKET_IMAGE_OVERHEAD, blob_size);
             proc->data_len += blob_size;
             proc->blob_num++;
@@ -136,9 +138,8 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
     {
         proc->data_offset = proc->block_len;
         proc->data_len -= proc->block_len;
-        res = TRUE;
+        return TRUE;
     }
-    else res = FALSE;
 
-    return res;
+    return FALSE;
 }

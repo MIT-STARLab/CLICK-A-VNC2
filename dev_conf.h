@@ -59,6 +59,7 @@ uint8 dev_usb_wait(uint32 timeout_ms);
 uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev);
 uint8 dev_usb_boms_acquire();
 void dev_usb_reset_ep(usbhost_ep_handle ep);
-void dev_rpi_reset();
+void dev_usb_cleanup();
+void dev_rpi_bootloader_reset();
 
 #endif /* _dev_conf_H_ */

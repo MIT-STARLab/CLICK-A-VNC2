@@ -267,16 +267,29 @@ uint8 dev_usb_boms_acquire()
         boms_iocb.set = NULL;
         boms_iocb.get = &sector_size;
         status = vos_dev_ioctl(boms, &boms_iocb);
-        status = (status == MSI_OK && sector_size == USB_EMMC_BLOCK_LEN);
+        status = (status == MSI_OK && sector_size == USB_EMMC_SECTOR_LEN);
     }
 
     return status;
 }
 
+/* Close and clean up USB MSD after successful reprogramming */
+void dev_usb_cleanup()
+{
+    msi_ioctl_cb_t boms_iocb;
+    if (boms != NULL)
+    {
+        boms_iocb.ioctl_code = MSI_IOCTL_BOMS_DETACH;
+        vos_dev_ioctl(boms, &boms_iocb);
+        vos_dev_close(boms);
+        boms = NULL;
+    }
+}
+
 /* Reset RPi CPU
 ** Needs to be reset twice with about 2 sec delay for some reason
 ** Afterward, the USB enumeration takes about 8-10 sec */
-void dev_rpi_reset()
+void dev_rpi_bootloader_reset()
 {
     /* Configure pin as output */
     vos_gpio_set_pin_mode(GPIO_RPI_RESET, 1);
