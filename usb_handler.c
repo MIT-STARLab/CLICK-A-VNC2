@@ -91,21 +91,52 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint8 *buf, uint16 len)
     return (len == 0);
 }
 
-/* First stage - send the boot message and the embedded bootloader code */
+/* Prepare bootloader transfer to device */
+static uint8 usb_prepare_boot_stage(dev_usb_boot_t *dev, uint32 length)
+{
+    usb_boot_msg_t boot_msg;
+    boot_msg.msg = length;
+
+    /* Notify that boot init message will be sent */
+    if (usb_ctrl_xfer(dev->ctrl, NULL, sizeof(boot_msg)))
+    {
+        /* Send the init boot message */
+        if (usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg)))
+        {
+            /* Notify that bootloader will be sent */
+            return usb_ctrl_xfer(dev->ctrl, NULL, length);
+        }
+    }
+
+    return FALSE;
+}
+
+/* Finalize bootloader transfer to device */
+static uint8 usb_finalize_boot_stage(dev_usb_boot_t *dev)
+{
+    int reply = -1;
+
+    /* Verify USB reply */
+    vos_delay_msecs(1000);
+    if (usb_ctrl_xfer(dev->ctrl, (uint8*) (&reply), 4) && reply == 0)
+    {
+        /* If OK, wait and force USB re-enumeration */
+        vos_delay_msecs(1000);
+        dev_usb_force_enumeration();
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/* First stage - send the embedded bootloader code */
 static uint8 usb_first_stage(dev_usb_boot_t *dev)
 {
     uint8 res = FALSE;
     uint16 i = 0, pos = 0, avail = 0, crc = 0xFFFF;
-    usb_boot_msg_t boot_msg = { USB_BOOTCODE_LEN };
 
-    /* Notify that boot message will be sent */
-    res = usb_ctrl_xfer(dev->ctrl, NULL, sizeof(boot_msg));
-
-    /* Send the init boot message */
-    if (res) res = usb_bulk_write(dev, (uint8*) (&boot_msg), sizeof(boot_msg));
-
-    /* Notify that bootloader will be sent */
-    if (res) res = usb_ctrl_xfer(dev->ctrl, NULL, USB_BOOTCODE_LEN);
+    /* Prepare bootloader transfer */
+    res = usb_prepare_boot_stage(dev, USB_BOOTCODE_LEN);
 
     /* Send the embedded bootloader binary */
     while (res && pos < USB_BOOTCODE_LEN)
@@ -127,26 +158,59 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
     /* Verify bootloader write */
     if (res && pos == USB_BOOTCODE_LEN && crc == USB_BOOTCODE_CRC)
     {
-        /* Verify USB reply */
-        vos_delay_msecs(1000);
-        res = usb_ctrl_xfer(dev->ctrl, (uint8*) (&boot_msg.msg), 4);
-        if (res && boot_msg.msg == 0)
-        {
-            vos_delay_msecs(1000);
-            dev_usb_force_enumeration();
-            return TRUE;
-        }
+        return usb_finalize_boot_stage(dev);
     }
 
     return FALSE;
 }
 
-/* First stage - send the boot message and the embedded bootloader code */
+/* Second stage - send msd.elf, received through UART */
 static uint8 usb_second_stage(dev_usb_boot_t *dev)
 {
+    uint8 res = FALSE;
+    uint16 crc = 0xFFFF;
+    uint32 sent = 0;
+    uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
+    /* Wait for the first block with longer timeout */
+    proc.block_len = USB_STAGE2_BLOCK_LEN;
+    res = uart_get_block(&proc, 10000);
 
-    return TRUE;
+    /* Prepare bootloader transfer */
+    if (res) res = usb_prepare_boot_stage(dev, USB_MSD_ELF_LEN);
+
+    /* Start msd.elf write loop */
+    while (res && sent < USB_MSD_ELF_LEN)
+    {
+        /* Write and update CRC for sanity check */
+        res = usb_bulk_write(dev, tlm_buffer, proc.block_len);
+        crc = crc_16_update(crc, tlm_buffer, proc.block_len);
+
+        if (res)
+        {
+            sent += proc.block_len;
+
+            /* Adjust block size for last write */
+            if ((USB_MSD_ELF_LEN - sent) < USB_STAGE2_BLOCK_LEN)
+            {
+                proc.block_len = USB_MSD_ELF_LEN - sent;
+            }
+
+            /* Request more UART data */
+            if (sent < USB_MSD_ELF_LEN)
+            {
+                res = uart_get_block(&proc, UART_TIMEOUT_MS);
+            }
+        }
+    }
+
+    /* Verify bootloader write */
+    if (res && sent == USB_MSD_ELF_LEN && crc == USB_MSD_ELF_CRC)
+    {
+        return usb_finalize_boot_stage(dev);
+    }
+
+    return FALSE;
 }
 
 /* Enter the reprogramming sequence */

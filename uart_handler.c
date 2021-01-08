@@ -39,7 +39,7 @@ void uart_test()
     for(;;)
     {
         uart_dbg("waiting for packet...", 1, 1);
-        if (packet_process_blocking(uart, cmd_buffer, PACKET_IMAGE_MAX_LEN, &pkt_start, 10))
+        if (packet_process_blocking(uart, cmd_buffer, PACKET_TC_MAX_LEN, &pkt_start, 10))
         {
             uart_reply(UART_PROC_APID_LSB, 0, UART_PROC_CRC);
             usb_run_sequence();
@@ -68,13 +68,25 @@ uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
 }
 
 /* Wait for a new block of data from UART */
-uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
+uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
 {
     uint8 res = TRUE, failed = FALSE, retries = UART_MAX_RETRY;
-    uint16 pkt_len = 0, apid = 0;
+    uint16 pkt_len = 0, blob_size = 0, apid = 0, i = 0;
     uint8 *pkt_start = NULL;
     packet_header_t *header = NULL;
 
+    /* If there is data remaining from previous run, shift it left.
+    ** The global telemetry buffer is used to store USB blocks.
+    ** The global command buffer is used to store UART blobs */
+    if (proc->data_len > 0)
+    {
+        for (i = 0; i < proc->data_len; i++)
+        {
+            tlm_buffer[i] = tlm_buffer[proc->data_offset + i];
+        }
+    }
+
+    /* Start blob processing loop */
     while (res && retries > 0 && proc->data_len < proc->block_len)
     {
         /* Get next blob from the bus */
@@ -83,20 +95,22 @@ uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
             /* Notify we are ready for next blob (unless failed previously) */
             if (!failed) res = uart_reply(UART_READY_APID_LSB, proc->blob_seq, UART_READY_CRC);
             if (res) pkt_len = packet_process_timeout(uart, cmd_buffer,
-                PACKET_IMAGE_MAX_LEN, &pkt_start, UART_TIMEOUT_MS);
+                PACKET_TC_MAX_LEN, &pkt_start, UART_TIMEOUT_MS);
             else break;
         }
 
         /* Wait for first blob from the bus */
         else pkt_len = packet_process_timeout(uart, cmd_buffer,
-            PACKET_IMAGE_MAX_LEN, &pkt_start, initial_timeout_ms);
+            PACKET_TC_MAX_LEN, &pkt_start, initial_timeout_ms);
 
-        /* Verify packet length and APID */
+        /* Verify blob length and APID */
         if (pkt_len)
         {
+            blob_size = pkt_len - PACKET_IMAGE_OVERHEAD - PACKET_IMAGE_TRIM;
             header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
+            proc->blob_seq = (header->seq_msb << 8) | header->seq_lsb;
             apid = (header->apid_msb << 8) | header->apid_lsb;
-            failed = (apid != UART_BLOB_APID);
+            failed = (apid != UART_BLOB_APID || blob_size > USB_EMMC_BLOCK_LEN);
         }
         else failed = TRUE;
 
@@ -107,13 +121,24 @@ uint8 uart_new_block(uart_proc_t *proc, uint32 initial_timeout_ms)
             res = uart_reply(UART_RETRANSMIT_APID_LSB, proc->blob_seq, UART_RETRANSMIT_CRC);
         }
 
-        /* Otherwise, process new data */
+        /* Otherwise, process new data
+        ** TODO: Fix blob len after BCT FSW update */
         else
         {            
+            vos_memcpy(tlm_buffer + proc->data_len, pkt_start + PACKET_IMAGE_OVERHEAD, blob_size);
+            proc->data_len += blob_size;
             proc->blob_num++;
-            // ...
         }
     }
+
+    /* Check for success */
+    if (proc->data_len >= proc->block_len)
+    {
+        proc->data_offset = proc->block_len;
+        proc->data_len -= proc->block_len;
+        res = TRUE;
+    }
+    else res = FALSE;
 
     return res;
 }
