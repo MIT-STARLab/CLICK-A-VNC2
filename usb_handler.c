@@ -77,6 +77,28 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint8 *buf, uint16 len)
     return (len == 0);
 }
 
+/* Write to a mass storage device */
+static uint8 usb_msd_write(unsigned long sector, uint8 *buf, uint16 len)
+{
+    uint8 status = 0;
+    msi_xfer_cb_t tx;
+    vos_semaphore_t sem;
+
+    /* Prepare the transfer block */
+    vos_memset(&tx, 0, sizeof(msi_xfer_cb_t));
+    vos_init_semaphore(&sem, 0);
+    tx.sector = sector;
+    tx.buf = buf;
+    tx.total_len = len;
+    tx.buf_len = len;
+    tx.status = MSI_NOT_ACCESSED;
+    tx.s = &sem;
+    tx.do_phases = MSI_PHASE_ALL;
+
+    status = vos_dev_read(boms, (uint8*) (&tx), sizeof(msi_xfer_cb_t), NULL);
+    return (status == MSI_OK && (tx.status & BOMS_HC_CC_ERROR) == 0);
+}
+
 /* Prepare bootloader transfer to device */
 static uint8 usb_prepare_boot_stage(dev_usb_boot_t *dev, uint32 length)
 {
@@ -198,6 +220,19 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
     return FALSE;
 }
 
+/* Third stage - write golden image, received through UART */
+static uint8 usb_third_stage(uart_proc_t *proc)
+{
+    uint8 res = FALSE;
+
+    res = usb_msd_write(0, tlm_buffer, USB_EMMC_BLOCK_LEN);
+
+    uart_dbg("rd 1", 0, (tlm_buffer[0] << 8) | tlm_buffer[1]);
+    uart_dbg("rd 2", 0, (tlm_buffer[2] << 8) | tlm_buffer[3]);
+
+    return res;
+}
+
 /* Enter the reprogramming sequence */
 void usb_run_sequence()
 {
@@ -251,10 +286,12 @@ void usb_run_sequence()
         if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);
         else res = FALSE;
 
-        /* Repeat for third-stage mass storage device */
+        /* Repeat for third-stage, the mass storage device */
         if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boms_acquire();
+        if (res) res = usb_third_stage(&proc);
 
+        uart_dbg("result", res, res);
 
     }
 }

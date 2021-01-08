@@ -216,9 +216,11 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
     return success;
 }
 
-/* Acquire a mass storage USB device */
+/* Acquire the EMMC mass storage device */
 uint8 dev_usb_boms_acquire()
 {
+    uint8 status = 0;
+    uint16 sector_size = 0;
     usbhost_ioctl_cb_t iocb;
     usbhost_device_handle interface = NULL;
     usbhost_ioctl_cb_class_t class;
@@ -233,20 +235,42 @@ uint8 dev_usb_boms_acquire()
     iocb.handle.dif = NULL;
     iocb.set = &class;
     iocb.get = &interface;
+    status = vos_dev_ioctl(usb, &iocb);
+    status = (status == USBHOST_OK && interface != NULL);
 
-    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && interface != NULL)
+    /* Initialize the BOMS driver if needed */
+    if (status && boms == NULL)
     {
-        /* Attach the BOMS driver to the interface */
-        if (boms == NULL) boms = vos_dev_open(VOS_DEV_BOMS_DRV);
+        if (boms_init(VOS_DEV_BOMS_DRV) == 0)
+        {
+            boms = vos_dev_open(VOS_DEV_BOMS_DRV);
+        }
+        status = (boms != NULL);
+    }
+
+    /* Attach the BOMS driver to the interface */
+    if (status)
+    {
         boms_att.hc_handle = usb;
         boms_att.ifDev = interface;
         boms_iocb.ioctl_code = MSI_IOCTL_BOMS_ATTACH;
         boms_iocb.set = &boms_att;
         boms_iocb.get = NULL;
-        return (vos_dev_ioctl(boms, &boms_iocb) == MSI_OK);
+        status = vos_dev_ioctl(boms, &boms_iocb);
+        status = (status == MSI_OK);
     }
 
-    return FALSE;
+    /* Verify sector size */
+    if (status)
+    {
+        boms_iocb.ioctl_code = MSI_IOCTL_GET_SECTOR_SIZE;
+        boms_iocb.set = NULL;
+        boms_iocb.get = &sector_size;
+        status = vos_dev_ioctl(boms, &boms_iocb);
+        status = (status == MSI_OK && sector_size == USB_EMMC_BLOCK_LEN);
+    }
+
+    return status;
 }
 
 /* Reset RPi CPU
