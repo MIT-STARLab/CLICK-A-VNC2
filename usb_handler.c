@@ -165,15 +165,14 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
 }
 
 /* Second stage - send msd.elf, received through UART */
-static uint8 usb_second_stage(dev_usb_boot_t *dev)
+static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 {
     uint8 res = FALSE;
     uint16 crc = 0xFFFF;
     uint32 sent = 0;
-    uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
     /* Wait for the first block with longer timeout */
-    proc.block_len = USB_STAGE2_BLOCK_LEN;
+    proc->block_len = USB_STAGE2_BLOCK_LEN;
     res = uart_get_block(&proc, 10000);
 
     /* Prepare bootloader transfer */
@@ -183,17 +182,17 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev)
     while (res && sent < USB_MSD_ELF_LEN)
     {
         /* Write and update CRC for sanity check */
-        res = usb_bulk_write(dev, tlm_buffer, proc.block_len);
-        crc = crc_16_update(crc, tlm_buffer, proc.block_len);
+        res = usb_bulk_write(dev, tlm_buffer, proc->block_len);
+        crc = crc_16_update(crc, tlm_buffer, proc->block_len);
 
         if (res)
         {
-            sent += proc.block_len;
+            sent += proc->block_len;
 
             /* Adjust block size for last write */
             if ((USB_MSD_ELF_LEN - sent) < USB_STAGE2_BLOCK_LEN)
             {
-                proc.block_len = USB_MSD_ELF_LEN - sent;
+                proc->block_len = USB_MSD_ELF_LEN - sent;
             }
 
             /* Request more UART data */
@@ -218,6 +217,7 @@ void usb_run_sequence()
 {
     uint8 res = FALSE;
     dev_usb_boot_t dev = { 0, 0, 0 };
+    uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
@@ -262,7 +262,7 @@ void usb_run_sequence()
         if (res) res = dev_usb_boot_acquire(&dev);
 
         /* If serial numbers equals one, run second stage */
-        if (res && dev.sn == 1) res = usb_second_stage(&dev);
+        if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);
         else res = FALSE;
 
         uart_dbg("result", res, res);

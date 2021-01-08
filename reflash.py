@@ -4,18 +4,21 @@ import serial
 import sys
 
 port = 'COM8'
-blob_len = 100
+blob_len = 486
+trash_len = 4
 sync = bytearray([0x35, 0x2E, 0xF8, 0x53])
 
-def create_pkt(data_len):
+def create_pkt(data):
+    payload_len = len(data) + trash_len + 2
     buf = bytearray()
     buf.append(0x02)
     buf.append(0x00)
     buf.append(0x00)
     buf.append(0x00)
-    buf.append(((data_len+1) >> 8) & 0xFF)
-    buf.append((data_len+1) & 0xFF)
-    buf.extend(bytearray([0]*data_len))
+    buf.append(((payload_len-1) >> 8) & 0xFF)
+    buf.append((payload_len-1) & 0xFF)
+    buf.extend(data)
+    buf.extend(bytearray([0]*trash_len))
     crc = crc16.calc(buf)
     pkt = bytearray()
     pkt.extend(sync)
@@ -57,6 +60,11 @@ def read_pkts(uart):
 
 if __name__ == "__main__":
     uart = serial.Serial(port, 921600, timeout = 1)
-    uart.write(create_pkt(blob_len))
-    print("Awaiting response...")
-    read_pkts(uart)
+    with open("msd.elf", "rb") as msd:
+        print("Awaiting response...")
+        while True:
+            blob = msd.read(blob_len)
+            if len(blob) == 0:
+                break
+            uart.write(create_pkt(blob))
+            read_pkts(uart)
