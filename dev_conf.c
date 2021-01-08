@@ -174,7 +174,7 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
         status = (status == USBHOST_OK && dev->ctrl != NULL);
     }
 
-    /* Save the serial number */
+    /* Save the serial number from the device descriptor */
     if (status)
     {
         iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_SETUP_TRANSFER;
@@ -214,6 +214,39 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
     }
 
     return success;
+}
+
+/* Acquire a mass storage USB device */
+uint8 dev_usb_boms_acquire()
+{
+    usbhost_ioctl_cb_t iocb;
+    usbhost_device_handle interface = NULL;
+    usbhost_ioctl_cb_class_t class;
+    msi_ioctl_cb_t boms_iocb;
+    boms_ioctl_cb_attach_t boms_att;
+
+    /* Find BOMS class device interface */
+    class.dev_class = USB_CLASS_MASS_STORAGE;
+    class.dev_subclass = USB_SUBCLASS_MASS_STORAGE_SCSI;
+    class.dev_protocol = USB_PROTOCOL_MASS_STORAGE_BOMS;
+    iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_FIND_HANDLE_BY_CLASS;
+    iocb.handle.dif = NULL;
+    iocb.set = &class;
+    iocb.get = &interface;
+
+    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK && interface != NULL)
+    {
+        /* Attach the BOMS driver to the interface */
+        if (boms == NULL) boms = vos_dev_open(VOS_DEV_BOMS_DRV);
+        boms_att.hc_handle = usb;
+        boms_att.ifDev = interface;
+        boms_iocb.ioctl_code = MSI_IOCTL_BOMS_ATTACH;
+        boms_iocb.set = &boms_att;
+        boms_iocb.get = NULL;
+        return (vos_dev_ioctl(boms, &boms_iocb) == MSI_OK);
+    }
+
+    return FALSE;
 }
 
 /* Reset RPi CPU

@@ -12,11 +12,8 @@
 #define VOS_DEV_UART 1
 #define VOS_DEV_SPI_SLAVE_0 2
 #define VOS_DEV_SPI_SLAVE_1 3
-#define VOS_DEV_GPIO_PORT_A 4
-#define VOS_DEV_TIMER_0 5
-#define VOS_DEV_TIMER_1 6
-#define VOS_DEV_BOMS_DRV 7
-#define VOS_NUMBER_DEVICES 8
+#define VOS_DEV_BOMS_DRV 4
+#define VOS_NUMBER_DEVICES 5
 
 #define GPIO_RPI_IRQ GPIO_A_2
 #define GPIO_RPI_EMMC GPIO_A_4
@@ -60,6 +57,7 @@ uint16 dev_rx_avail(VOS_HANDLE dev);
 uint8 dev_usb_status();
 uint8 dev_usb_wait(uint32 timeout_ms);
 uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev);
+uint8 dev_usb_boms_acquire();
 void dev_usb_reset_ep(usbhost_ep_handle ep);
 void dev_rpi_reset();
 

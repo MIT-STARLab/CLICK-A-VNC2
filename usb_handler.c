@@ -39,13 +39,7 @@ static uint8 usb_ctrl_xfer(usbhost_ep_handle ctrl, uint8 *buf, uint32 len)
         iocb.get = buf;
     }
 
-    /* Perform transfer */
-    if (vos_dev_ioctl(usb, &iocb) == USBHOST_OK)
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return (vos_dev_ioctl(usb, &iocb) == USBHOST_OK);
 }
 
 /* Bulk write during usb boot stage */
@@ -76,16 +70,8 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint8 *buf, uint16 len)
             len -= tx.len;
             tx.buf += tx.len;
         }
-        else if (status == USBHOST_EP_HALTED)
-        {
-            uart_dbg("USB clearing halt", status, status);
-            dev_usb_reset_ep(dev->bulk);
-        }
-        else
-        {
-            uart_dbg("USB write error", tx.cond_code, status);
-            break;
-        }
+        else if (status == USBHOST_EP_HALTED) dev_usb_reset_ep(dev->bulk);
+        else break;
     }
 
     return (len == 0);
@@ -116,7 +102,7 @@ static uint8 usb_finalize_boot_stage(dev_usb_boot_t *dev)
 {
     int reply = -1;
 
-    /* Verify USB reply */
+    /* Verify USB reply equals zero */
     if (usb_ctrl_xfer(dev->ctrl, (uint8*) (&reply), 4) && reply == 0)
     {
         /* If OK, wait for USB re-enumeration */
@@ -142,7 +128,7 @@ static uint8 usb_first_stage(dev_usb_boot_t *dev)
         avail = USB_BOOTCODE_LEN - pos;
         avail = avail > USB_STAGE1_BLOCK_LEN ? USB_STAGE1_BLOCK_LEN : avail;
 
-        /* Temporarily load from ROM into telemetry buffer */
+        /* Temporarily load from ROM into RAM telemetry buffer */
         for (i = 0; i < avail; i++, pos++)
         {
             tlm_buffer[i] = bootcode_bin[pos];
@@ -168,11 +154,10 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
     uint8 res = FALSE;
     uint16 crc = 0xFFFF;
     uint32 sent = 0;
-    int reply = -1;
 
     uart_dbg("waiting for uart", 0, 0);
 
-    /* Wait for the first block with longer timeout */
+    /* Wait for the first block with longer UART timeout */
     proc->block_len = USB_STAGE2_BLOCK_LEN;
     res = uart_get_block(proc, 10000);
 
@@ -268,6 +253,8 @@ void usb_run_sequence()
 
         /* Repeat for third-stage mass storage device */
         if (res) res = dev_usb_wait(5000);
+        if (res) res = dev_usb_boms_acquire();
+
 
     }
 }
