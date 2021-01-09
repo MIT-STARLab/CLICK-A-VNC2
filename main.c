@@ -18,7 +18,6 @@
 
 void main()
 {
-    uart_context_t uart_conf;
     spislave_context_t spi0_conf;
     spislave_context_t spi1_conf;
     
@@ -34,10 +33,8 @@ void main()
     spi0_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
     spi1_conf.slavenumber = SPI_SLAVE_1;
     spi1_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
-    uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
 
     /* Driver init */
-    uart_init(VOS_DEV_UART, &uart_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
 
@@ -48,10 +45,9 @@ void main()
     vos_gpio_write_pin(GPIO_RPI_EMMC, 0);
 
     /* Configure priority and start threads */
-    // vos_create_thread_ex(20, BUS_THREAD_STACK, spi_handler_bus, "bus", 0);
-    // vos_create_thread_ex(15, PAYLOAD_THREAD_STACK, spi_handler_payload, "payload", 0);
-    // vos_create_thread_ex(10, HELPER_THREAD_STACK, spi_handler_watchdog, "wd", 0);
-    vos_create_thread_ex(15, BUS_THREAD_STACK, uart_test, "ut", 0);
+    vos_create_thread(20, BUS_THREAD_STACK, spi_handler_bus, 0);
+    vos_create_thread(15, PAYLOAD_THREAD_STACK, spi_handler_payload, 0);
+    vos_create_thread(10, HELPER_THREAD_STACK, spi_handler_watchdog, 0);
     vos_start_scheduler();
 
     /* Never reached */

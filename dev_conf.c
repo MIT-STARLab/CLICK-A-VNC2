@@ -6,7 +6,6 @@
 */
 
 #include "dev_conf.h"
-#include "uart_handler.h"
 #include "usb_handler.h"
 
 /* Device globals */
@@ -53,21 +52,37 @@ void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase)
 }
 
 /* Configure UART */
-void dev_conf_uart(uint32 baud)
+uint8 dev_uart_start()
 {
+    uart_context_t uart_conf;
     common_ioctl_cb_t iocb;
 
-    iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
-    iocb.set.uart_baud_rate = baud;
-    vos_dev_ioctl(uart, &iocb);
+    if (uart == NULL)
+    {
+        uart_conf.buffer_size = VOS_BUFFER_SIZE_512_BYTES;
+        if (uart_init(VOS_DEV_UART, &uart_conf) == 0)
+        {
+            uart = vos_dev_open(VOS_DEV_UART);
+            if (uart)
+            {
+                iocb.ioctl_code = VOS_IOCTL_UART_SET_BAUD_RATE;
+                iocb.set.uart_baud_rate = 921600;
+                vos_dev_ioctl(uart, &iocb);
 
-    iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
-    iocb.set.param = UART_FLOW_NONE;
-    vos_dev_ioctl(uart, &iocb);
+                iocb.ioctl_code = VOS_IOCTL_UART_SET_FLOW_CONTROL;
+                iocb.set.param = UART_FLOW_NONE;
+                vos_dev_ioctl(uart, &iocb);
+
+                dev_dma_acquire(uart);
+            }
+        }
+    }
+
+    return (uart != NULL);
 }
 
 /* Prepare the USB stack */
-void dev_usb_start()
+uint8 dev_usb_start()
 {
     usbhost_context_t usb_conf;
     if (usb == NULL)
@@ -76,9 +91,13 @@ void dev_usb_start()
         usb_conf.ep_count = 4;
         usb_conf.xfer_count = 2;
         usb_conf.iso_xfer_count = 0;
-        usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf);
-        usb = vos_dev_open(VOS_DEV_USBHOST_1);
+        if (usbhost_init(VOS_DEV_USBHOST_1, -1, &usb_conf) == 0)
+        {
+            usb = vos_dev_open(VOS_DEV_USBHOST_1);
+        }
     }
+
+    return (usb != NULL);
 }
 
 /* Get USB port status */
@@ -86,9 +105,12 @@ uint8 dev_usb_status()
 {
     usbhost_ioctl_cb_t iocb;
     uint8 state = PORT_STATE_DISCONNECTED;
-    iocb.ioctl_code = VOS_IOCTL_USBHOST_GET_CONNECT_STATE;
-    iocb.get = &state;
-    vos_dev_ioctl(usb, &iocb);
+    if (usb != NULL)
+    {
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_GET_CONNECT_STATE;
+        iocb.get = &state;
+        vos_dev_ioctl(usb, &iocb);
+    }
     return state;
 }
 
@@ -142,7 +164,7 @@ uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev)
     usb_deviceDescriptor_t descriptor;
     usbhost_device_handle interface = NULL;
     usbhost_ep_handle endpoint = NULL;
-    usbhost_ioctl_cb_vid_pid_t vid_pid = { USB_VID, USB_BOOT_PID };
+    usbhost_ioctl_cb_vid_pid_t vid_pid = { USB_VID, USB_PID };
 
     /* Prepare descriptor request */
     vos_memset(dev, 0, sizeof(dev_usb_boot_t));
@@ -267,22 +289,36 @@ uint8 dev_usb_boms_acquire()
         boms_iocb.set = NULL;
         boms_iocb.get = &sector_size;
         status = vos_dev_ioctl(boms, &boms_iocb);
-        status = (status == MSI_OK && sector_size == USB_EMMC_SECTOR_LEN);
+        status = (status == MSI_OK && sector_size == USB_SECTOR_LEN);
     }
 
     return status;
 }
 
-/* Close and clean up USB MSD after successful reprogramming */
-void dev_usb_cleanup()
+/* Close and clean up auxiliary drivers after reprogramming */
+void dev_reprogramming_cleanup()
 {
     msi_ioctl_cb_t boms_iocb;
+
     if (boms != NULL)
     {
         boms_iocb.ioctl_code = MSI_IOCTL_BOMS_DETACH;
         vos_dev_ioctl(boms, &boms_iocb);
         vos_dev_close(boms);
         boms = NULL;
+    }
+
+    if (usb != NULL)
+    {
+        vos_dev_close(usb);
+        usb = NULL;
+    }
+
+    if (uart != NULL)
+    {
+        dev_dma_release(uart);
+        vos_dev_close(uart);
+        uart = NULL;
     }
 }
 

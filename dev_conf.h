@@ -47,8 +47,8 @@ typedef struct {
 /* Device initialization */
 void dev_conf_iomux();
 void dev_conf_spi(VOS_HANDLE spi, uint8 polarity, uint8 phase);
-void dev_conf_uart(uint32 baud);
-void dev_usb_start();
+uint8 dev_uart_start();
+uint8 dev_usb_start();
 
 /* Helpers */
 void dev_dma_acquire(VOS_HANDLE dev);
@@ -59,7 +59,7 @@ uint8 dev_usb_wait(uint32 timeout_ms);
 uint8 dev_usb_boot_acquire(dev_usb_boot_t *dev);
 uint8 dev_usb_boms_acquire();
 void dev_usb_reset_ep(usbhost_ep_handle ep);
-void dev_usb_cleanup();
+void dev_reprogramming_cleanup();
 void dev_rpi_common_reset();
 void dev_rpi_bootloader_reset();
 

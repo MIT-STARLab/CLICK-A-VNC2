@@ -12,18 +12,16 @@
 
 /* USB hardware info */
 #define USB_VID 0x0A5C
-#define USB_BOOT_PID 0x2764
-#define USB_MSD_PID 0x0001
-#define USB_EMMC_SECTOR_LEN 512
+#define USB_PID 0x2764
+#define USB_SECTOR_LEN 512
 
 /* Stage 1 block limited by telemetry RAM buffer size */
 #define USB_STAGE1_CLUSTER_LEN 8
-#define USB_STAGE1_BLOCK_LEN (USB_STAGE1_CLUSTER_LEN * USB_EMMC_SECTOR_LEN)
+#define USB_STAGE1_BLOCK_LEN (USB_STAGE1_CLUSTER_LEN * USB_SECTOR_LEN)
 
 /* Stage 2/3 block slightly smaller to prevent buffer overrun due to UART */
 #define USB_STAGE2_3_CLUSTER_LEN 7
-#define USB_STAGE2_3_BLOCK_LEN (USB_STAGE2_3_CLUSTER_LEN * USB_EMMC_SECTOR_LEN)
-
+#define USB_STAGE2_3_BLOCK_LEN (USB_STAGE2_3_CLUSTER_LEN * USB_SECTOR_LEN)
 
 /* First stage bootcode info */
 #define USB_BOOTCODE_LEN 16702

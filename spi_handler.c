@@ -56,7 +56,7 @@ void spi_handler_bus()
             vos_lock_mutex(&bus_write_busy);
             dev_dma_release(bus_spi);
 
-            /* Initialize and run reprogramming sequence if requested */
+            /* Run reprogramming sequence if requested */
             if (spi_is_reprog_command(pkt_start, pkt_len))
             {
                 usb_run_sequence();

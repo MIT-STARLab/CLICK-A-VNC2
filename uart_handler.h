@@ -37,8 +37,6 @@ typedef struct {
 
 uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc);
 uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms);
-
 void uart_dbg(char *msg, uint16 number1, uint16 number2);
-void uart_test();
 
 #endif /* _uart_handler_H_ */

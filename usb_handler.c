@@ -177,8 +177,6 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
     uint16 crc = 0xFFFF;
     uint32 sent = 0;
 
-    uart_dbg("waiting for uart", 0, 0);
-
     /* Wait for the first block with longer UART timeout */
     proc->block_len = USB_STAGE2_3_BLOCK_LEN;
     res = uart_get_block(proc, 30000);
@@ -245,18 +243,13 @@ static uint8 usb_third_stage(uart_proc_t *proc)
         if ((image_sectors - sector) < USB_STAGE2_3_CLUSTER_LEN)
         {
             cluster_len = image_sectors - sector;
-            proc->block_len = cluster_len * USB_EMMC_SECTOR_LEN;
+            proc->block_len = cluster_len * USB_SECTOR_LEN;
         }
 
         /* Get UART data and write to USB MSD */
         res = uart_get_block(proc, UART_TIMEOUT_MS);
         if (res) res = usb_msd_write(sector, tlm_buffer, proc->block_len);
         if (res) sector += cluster_len;
-
-        if (sector % 2051 == 0)
-        {
-            uart_dbg("MB sent", (uint16) (sector / 2048), 0);
-        }
     }
 
     return (res && sector == image_sectors);
@@ -299,8 +292,11 @@ void usb_run_sequence()
     /* Begin USB sequence */
     else
     {
+        /* Prepare UART */
+        res = dev_uart_start();
+
         /* Wait and acquire the first USB boot device */
-        res = dev_usb_wait(10000);
+        if (res) res = dev_usb_wait(10000);
         if (res) res = dev_usb_boot_acquire(&dev);
 
         /* If serial numbers equals zero, run first stage */
@@ -320,10 +316,8 @@ void usb_run_sequence()
         if (res) res = dev_usb_boms_acquire();
         if (res) res = usb_third_stage(&proc);
 
-        /* Close USB driver */
-        dev_usb_cleanup();
-
-        uart_dbg("result", res, res);
+        /* Close all auxiliary drivers */
+        dev_reprogramming_cleanup();
 
         /* Drive EMMC_DISABLE back high and reset RPi */
         vos_gpio_write_pin(GPIO_RPI_EMMC, 0);

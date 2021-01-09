@@ -13,7 +13,7 @@
 #include "string.h"
 #include "stdio.h"
 
-/* Debugging print */
+/* Packet-wrapped debugging print */
 void uart_dbg(char *msg, uint16 number1, uint16 number2)
 {
     char buf[128];
@@ -26,25 +26,6 @@ void uart_dbg(char *msg, uint16 number1, uint16 number2)
     hdr->len_msb = (msg_len - 1) >> 8;
     hdr->len_lsb = (msg_len - 1) & 0xFF;
     vos_dev_write(uart, (uint8*) buf, msg_len + PACKET_OVERHEAD, NULL);
-}
-
-/* Test thread */
-void uart_test()
-{
-    uint8 *pkt_start = NULL;
-    uart = vos_dev_open(VOS_DEV_UART);
-    dev_conf_uart(921600);
-    dev_dma_acquire(uart);
-    uart_dbg("boot...", 1, 1);
-    for(;;)
-    {
-        uart_dbg("waiting for packet...", 1, 1);
-        if (packet_process_blocking(uart, cmd_buffer, PACKET_TC_MAX_LEN, &pkt_start, 10))
-        {
-            uart_reply(UART_PROC_APID_LSB, 0, UART_PROC_CRC);
-            usb_run_sequence();
-        }
-    }
 }
 
 /* UART reprogramming flow control reply */
@@ -110,7 +91,7 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
             header = (packet_header_t*) (pkt_start + PACKET_SYNC_LEN);
             proc->blob_seq = (header->seq_msb << 8) | header->seq_lsb;
             apid = (header->apid_msb << 8) | header->apid_lsb;
-            failed = (apid != UART_BLOB_APID || blob_size > USB_EMMC_SECTOR_LEN);
+            failed = (apid != UART_BLOB_APID || blob_size > USB_SECTOR_LEN);
         }
         else failed = TRUE;
 
