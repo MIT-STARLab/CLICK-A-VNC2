@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Imitate golden image reprogramming from the bus through UART
 from crccheck.crc import Crc16CcittFalse as crc16
 import serial

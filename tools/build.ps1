@@ -29,7 +29,7 @@ foreach ($file in $files) {
 
 if ($rebuilt -gt 0) {
     VinL.exe -d 0 -O -o $configuration\$name @objects -U @libs
-    # scp $configuration\$name.rom pi@18.18.33.36:/home/pi/vnclFlash/CLICK.rom
+    scp $configuration\$name.rom pi@18.18.33.36:/home/pi/vnclFlash/CLICK.rom
 } else {
     Write-Output "Up to date"
 }

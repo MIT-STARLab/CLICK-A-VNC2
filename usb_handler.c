@@ -295,6 +295,8 @@ void usb_run_sequence()
         /* Prepare UART */
         res = dev_uart_start();
 
+        uart_dbg("starting usb sequence", 1, 1);
+
         /* Wait and acquire the first USB boot device */
         if (res) res = dev_usb_wait(10000);
         if (res) res = dev_usb_boot_acquire(&dev);
@@ -307,9 +309,14 @@ void usb_run_sequence()
         if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boot_acquire(&dev);
 
+        uart_dbg("starting 2nd stage", res, res);
+
         /* If serial numbers equals one, run second stage */
         if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);
         else res = FALSE;
+
+        uart_dbg("skipping 3rd stage", res, res);
+        res = FALSE;
 
         /* Repeat for third-stage, the mass storage device */
         if (res) res = dev_usb_wait(5000);
