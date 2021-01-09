@@ -42,7 +42,7 @@ uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
     hdr->seq_msb = (sequence << 8) & 0x3F;
     hdr->seq_lsb = sequence & 0xFF;
     hdr->len_lsb = 1;
-    cmd_buffer[PACKET_UART_REPLY_LEN - 2] = crc << 8;
+    cmd_buffer[PACKET_UART_REPLY_LEN - 2] = crc >> 8;
     cmd_buffer[PACKET_UART_REPLY_LEN - 1] = crc & 0xFF;
 
     return (vos_dev_write(uart, cmd_buffer, PACKET_UART_REPLY_LEN, NULL) == UART_OK);
