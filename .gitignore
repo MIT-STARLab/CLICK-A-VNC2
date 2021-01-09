@@ -4,8 +4,5 @@
 Release/**
 Debug/**
 .vscode/**
-build.ps1
-test.ps1
 disAsmFile.txt
-msd.elf
 click_golden.img

@@ -1,3 +1,5 @@
+/* Reflashes VNC2L program memory through UART on a Raspberry Pi */
+#ifndef __INTELLISENSE__
 #include <termios.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -362,3 +364,5 @@ int main()
 
     return 0;
 }
+
+#endif /* __INTELLISENSE__ */
