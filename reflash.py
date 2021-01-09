@@ -4,7 +4,7 @@ import serial
 import sys
 
 port = 'COM8'
-blob_len = 486
+blob_len = 513
 trash_len = 4
 sync = bytearray([0x35, 0x2E, 0xF8, 0x53])
 

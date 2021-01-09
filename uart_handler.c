@@ -51,7 +51,7 @@ uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc)
 /* Wait for a new block of data from UART */
 uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
 {
-    uint8 res = TRUE, failed = FALSE, retries = UART_MAX_RETRY;
+    uint8 res = TRUE, failed = FALSE, retries = UART_MAX_RETRY + 1;
     uint16 pkt_len = 0, blob_size = 0, apid = 0, i = 0;
     uint8 *pkt_start = NULL;
     packet_header_t *header = NULL;
@@ -107,7 +107,7 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
         ** TODO: Fix blob len after BCT FSW update */
         else
         {
-            retries = UART_MAX_RETRY;
+            retries = UART_MAX_RETRY + 1;
             vos_memcpy(tlm_buffer + proc->data_len, pkt_start + PACKET_IMAGE_OVERHEAD, blob_size);
             proc->data_len += blob_size;
             proc->blob_num++;
