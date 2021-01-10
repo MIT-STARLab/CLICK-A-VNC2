@@ -18,8 +18,8 @@
 #define GPIO_RPI_IRQ GPIO_A_2
 #define GPIO_RPI_EMMC GPIO_A_4
 #define GPIO_RPI_RESET GPIO_A_7
-#define GPIO_RPI_RESET_ACTIVE 0
-#define GPIO_RPI_RESET_INACTIVE 1
+#define GPIO_RPI_RESET_ACTIVE 1
+#define GPIO_RPI_RESET_INACTIVE 0
 
 #include "vos.h"
 #include "SPISlave.h"

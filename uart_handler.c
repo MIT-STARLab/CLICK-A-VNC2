@@ -107,7 +107,7 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
         ** TODO: Fix blob len after BCT FSW update */
         else
         {
-            if (proc->blob_num == 0) uart_dbg("first blob crc", 0, PACKET_GET_CRC(header, pkt_len - PACKET_SYNC_LEN));
+            if (proc->blob_num == 0) uart_dbg("first blob", blob_size, PACKET_GET_CRC(header, pkt_len - PACKET_SYNC_LEN));
             retries = UART_MAX_RETRY + 1;
             vos_memcpy(tlm_buffer + proc->data_len, pkt_start + PACKET_IMAGE_OVERHEAD, blob_size);
             proc->data_len += blob_size;

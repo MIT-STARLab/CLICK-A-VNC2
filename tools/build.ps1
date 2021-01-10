@@ -1,3 +1,4 @@
+# Windows Makefile, needs Vinculum II Toolchain V2.0.0-SP1
 $name = "click"
 $configuration = "Release"
 $files = @("main", "dev_conf", "spi_handler", "uart_handler", "usb_handler", "packets", "crc")

@@ -262,6 +262,8 @@ void usb_run_sequence()
     dev_usb_boot_t dev = { 0, 0, 0 };
     uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
+    uart_dbg("reprog init received", 1, 1);
+
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
     vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
@@ -293,7 +295,7 @@ void usb_run_sequence()
     else
     {
         /* Prepare UART */
-        res = dev_uart_start();
+        // res = dev_uart_start();
 
         uart_dbg("starting usb sequence", 1, 1);
 

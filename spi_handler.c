@@ -11,6 +11,8 @@
 #include "dev_conf.h"
 #include "helpers.h"
 
+#include "uart_handler.h"
+
 /* Private variables */
 static vos_mutex_t bus_write_busy;
 static vos_mutex_t payload_read_busy;
@@ -133,6 +135,7 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 prev_cnt = 0, count_on_same = 0;
+    uart_dbg("boot", 1, 1);
     for(;;)
     {
         vos_delay_msecs(1000);

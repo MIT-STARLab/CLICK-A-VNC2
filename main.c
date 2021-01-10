@@ -38,6 +38,8 @@ void main()
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
 
+    dev_uart_start();
+
     /* Configure EMMC and interrupt GPIO as output and low */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
     vos_gpio_set_pin_mode(GPIO_RPI_EMMC, 1);

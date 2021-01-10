@@ -62,10 +62,29 @@ int write_flash(int uart, unsigned char addrL, unsigned char addrH, char *data)
         endianData[i+1] = data[i];
     }
 
-    do
+    i = 0;
+    write(uart, cmd, 3);
+
+    while (i < TIMEOUT)
+    {
+        if (uartDataAvail(uart) > 0)
+        {
+            read(uart, cmd, 1);
+            if(cmd[0] != 0x02)
+            {
+                printf("\nIncorrect command response in write flash: %0X\n", cmd[0]);
+                return -1;
+            }
+            else cmd_success = 1;
+            break;
+        }
+        else i++;
+    }
+
+    if(cmd_success)
     {
         i = 0;
-        write(uart, cmd, 3);
+        write(uart, endianData, 128);
         while (i < TIMEOUT)
         {
             if (uartDataAvail(uart) > 0)
@@ -73,45 +92,27 @@ int write_flash(int uart, unsigned char addrL, unsigned char addrH, char *data)
                 read(uart, cmd, 1);
                 if(cmd[0] != 0x02)
                 {
-                    printf("\nIncorrect command response in write flash: %0X\n", cmd[0]);
+                    printf("\nIncorrect write response in write flash: %0X\n", cmd[0]);
                     return -1;
                 }
-                else cmd_success = 1;
+                else wr_success = 1;
                 break;
             }
             else i++;
         }
-        if(cmd_success)
+
+        if (!wr_success)
         {
-            i = 0;
-            write(uart, endianData, 128);
-            while (i < TIMEOUT)
-            {
-                if (uartDataAvail(uart) > 0)
-                {
-                    read(uart, cmd, 1);
-                    if(cmd[0] != 0x02)
-                    {
-                        printf("\nIncorrect write response in write flash: %0X\n", cmd[0]);
-                        return -1;
-                    }
-                    else wr_success = 1;
-                    break;
-                }
-                else i++;
-            }
-            if (!wr_success)
-            {
-                printf("\nData write timeout\n");
-                return -1;
-            }
-        }
-        else
-        {
-            printf("\nCmd write timeout\n");
+            printf("\nData write timeout\n");
             return -1;
         }
-    } while(!wr_success);
+    }
+    else
+    {
+        printf("\nCmd write timeout\n");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -229,47 +230,44 @@ int read_flash(int uart, unsigned char addrL, unsigned char addrH, unsigned char
     unsigned char cmd[3] = {0x02, addrL, addrH};
     unsigned char rd_success = 0;
 
-    do
+    write(uart, cmd, 3);
+    while (i < READ_TIMEOUT)
     {
-        i = 0;
-        write(uart, cmd, 3);
-        while (i < READ_TIMEOUT)
+        usleep(10);
+        avail = uartDataAvail(uart);
+        if (avail == 1)
         {
-            usleep(10);
+            read(uart, cmd, 1);
+            if(cmd[0] == 0xFF)
+            {
+                printf("\nFlash read error %0X\n", cmd[0]);
+                return -1;
+            }
             avail = uartDataAvail(uart);
-            if (avail == 1)
-            {
-                read(uart, cmd, 1);
-                if(cmd[0] == 0xFF)
-                {
-                    printf("\nFlash read error %0X\n", cmd[0]);
-                    return -1;
-                }
-                avail = uartDataAvail(uart);
-            }
-            if (avail == 129)
-            {
-                read(uart, cmd, 1);
-                if(cmd[0] != 0x02)
-                {
-                    printf("\nIncorrect command response in read flash: %0X\n", cmd[0]);
-                    return -1;
-                }
-                else
-                {
-                    read(uart, &endianData, 128);
-                    rd_success = 1;
-                    break;
-                }
-            }
-            else i++;
         }
-        if(!rd_success)
+        if (avail == 129)
         {
-            printf("\nFlash read timeout\n");
-            return -1;
+            read(uart, cmd, 1);
+            if(cmd[0] != 0x02)
+            {
+                printf("\nIncorrect command response in read flash: %0X\n", cmd[0]);
+                return -1;
+            }
+            else
+            {
+                read(uart, &endianData, 128);
+                rd_success = 1;
+                break;
+            }
         }
-    } while (!rd_success);
+        else i++;
+    }
+
+    if(!rd_success)
+    {
+        printf("\nFlash read timeout\n");
+        return -1;
+    }
     
     for(i = 0; i < 128; i+=2)
     {
