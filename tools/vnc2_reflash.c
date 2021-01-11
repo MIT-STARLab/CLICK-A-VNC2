@@ -1,4 +1,5 @@
-/* Reflashes VNC2L program memory through UART on a Raspberry Pi */
+/* Reflashes VNC2L program memory through UART on a Raspberry Pi
+** Must run Raspbian lite for some reason... ? */
 #ifndef __INTELLISENSE__
 #include <termios.h>
 #include <unistd.h>

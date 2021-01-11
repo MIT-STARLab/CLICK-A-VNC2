@@ -262,7 +262,7 @@ void usb_run_sequence()
     dev_usb_boot_t dev = { 0, 0, 0 };
     uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
-    uart_dbg("reprog init received", 1, 1);
+    dev_uart_start();
 
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
@@ -270,11 +270,13 @@ void usb_run_sequence()
 
     /* Start the USB stack and wait for connection */
     dev_usb_start();
-    vos_delay_msecs(250);
+    vos_delay_msecs(2000);
 
     /* Check port state */
     if (dev_usb_status() == PORT_STATE_DISCONNECTED)
     {
+        uart_dbg("resetting rpi", 1, 1);
+
         /* Reset the RPi into USB bootloader mode.
         ** Following the reset, the USB enumeration happens after roughly 8-10 sec.
         ** However, due to some internal USB bug, the USB stack crashes the system when it happens.

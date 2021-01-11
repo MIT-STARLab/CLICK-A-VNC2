@@ -135,7 +135,6 @@ void spi_handler_payload()
 void spi_handler_watchdog()
 {
     uint32 prev_cnt = 0, count_on_same = 0;
-    uart_dbg("boot", 1, 1);
     for(;;)
     {
         vos_delay_msecs(1000);
