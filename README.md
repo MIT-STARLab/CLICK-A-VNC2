@@ -22,7 +22,7 @@ The pipe is implemented using three threads, described below.
 ### 2. The payload SPI thread
 1. It starts in a blocked state, waiting for the bus SPI thread to unblock it.
 2. Once unblocked, it toggles the signal GPIO connected to the CM3.
-3. Then, it immediately starts a read operation on the payload SPI bus, waiting for any telemetry packet from the CM3.
+3. Then, it immediately starts a read operation on the payload SPI bus, waiting for any telemetry packet.
 4. At this point, both threads are waiting for a read/write to be performed by the CM3.
 5. If a valid telemetry packet is received, it will start a blocking SPI slave write operation on the bus SPI.
 6. It jumps back to #1
@@ -52,7 +52,8 @@ The bus shall thus implement the following reprogramming sequence:
 4. Wait 1 sec for VNC2L boot
 5. Turn payload enable on
 6. Send 0x7EF
-7. Wait 14 sec
+7. Wait 14-15 sec
 8. Send 0x7EF
 9. Wait 3 sec
 10. Start UART golden image transfer
+11. Turn ToT packets on
