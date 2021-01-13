@@ -11,27 +11,6 @@
 #include "dev_conf.h"
 #include "crc.h"
 
-#include "string.h"
-#include "stdio.h"
-
-/* Packet-wrapped debugging print */
-void uart_dbg(char *msg, uint16 number1, uint16 number2)
-{
-    char buf[128];
-    uint16 msg_len = 0;
-    packet_header_t *hdr = (packet_header_t*) (buf + PACKET_SYNC_LEN);
-    if (uart != NULL)
-    {
-        vos_memset(buf, 0, 128);
-        sprintf(buf + PACKET_OVERHEAD, "%s: %d 0x%X", msg, number1, number2);
-        msg_len = strlen(buf + PACKET_OVERHEAD);
-        PACKET_ADD_SYNC(buf);
-        hdr->len_msb = (msg_len - 1) >> 8;
-        hdr->len_lsb = (msg_len - 1) & 0xFF;
-        vos_dev_write(uart, (uint8*) buf, msg_len + PACKET_OVERHEAD, NULL);
-    }
-}
-
 /* UART reprogramming flow control reply */
 uint8 uart_reply(uint8 apid_lsb, uint16 sequence)
 {

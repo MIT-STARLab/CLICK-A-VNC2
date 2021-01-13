@@ -78,7 +78,7 @@ static uint8 usb_bulk_write(dev_usb_boot_t *dev, uint8 *buf, uint16 len)
 }
 
 /* Write to a mass storage device */
-static uint8 usb_msd_write(unsigned long sector, uint8 *buf, uint16 len)
+static uint8 usb_msd_write(uint32 sector, uint8 *buf, uint16 len)
 {
     uint8 status = 0;
     msi_xfer_cb_t tx;
@@ -87,7 +87,7 @@ static uint8 usb_msd_write(unsigned long sector, uint8 *buf, uint16 len)
     /* Prepare the transfer block */
     vos_memset(&tx, 0, sizeof(msi_xfer_cb_t));
     vos_init_semaphore(&sem, 0);
-    tx.sector = sector;
+    tx.sector = (unsigned long) sector;
     tx.buf = buf;
     tx.total_len = len;
     tx.buf_len = len;
@@ -222,8 +222,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 static uint8 usb_third_stage(uart_proc_t *proc)
 {
     uint8 res = FALSE, cluster_len = 0;
-    uint32 image_sectors = 0;
-    unsigned long sector = 0;
+    uint32 sector = 0, image_sectors = 0;
 
     /* Get image size (in sectors).
     ** Encoded as a 4 byte integer after msd.elf, before the golden image starts */
@@ -295,8 +294,6 @@ void usb_run_sequence()
         /* Prepare UART */
         res = dev_uart_start();
 
-        uart_dbg("starting usb sequence", 1, 1);
-
         /* Wait and acquire the first USB boot device */
         if (res) res = dev_usb_wait(10000);
         if (res) res = dev_usb_boot_acquire(&dev);
@@ -308,8 +305,6 @@ void usb_run_sequence()
         /* Repeat for second-stage boot device */
         if (res) res = dev_usb_wait(5000);
         if (res) res = dev_usb_boot_acquire(&dev);
-
-        uart_dbg("starting 2nd stage", res, res);
 
         /* If serial numbers equals one, run second stage */
         if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);

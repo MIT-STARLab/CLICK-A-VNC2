@@ -2,7 +2,7 @@
 $name = "click"
 $configuration = "Release"
 $files = @("main", "dev_conf", "spi_handler", "uart_handler", "usb_handler", "packets", "crc")
-$libs = @("kernel.a", "USBHost.a", "UART.a", "SPISlave.a", "GPIO.a", "BOMS.a", "stdio.a", "string.a")
+$libs = @("kernel.a", "USBHost.a", "UART.a", "SPISlave.a", "BOMS.a")
 
 $objects = @()
 $rebuilt = 0
