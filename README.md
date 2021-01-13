@@ -37,6 +37,9 @@ However, if the CM3 is not responding for some reason, the VNC2L will still be s
 ## Reprogramming
 When commanded with a special SPI payload write packet (APID 0x7EF, no data), the VNC2L will run the CM3 reprogramming sequence and overwrite the flash with contents recieved through UART.
 
+The reprogramming sequence is based on the usbboot project from Raspberry Pi: [https://github.com/raspberrypi/usbboot/tree/f4e3f0f9a3c64d846ba53ec3367e33a4f9a7d051](https://github.com/raspberrypi/usbboot/tree/f4e3f0f9a3c64d846ba53ec3367e33a4f9a7d051). Note that an old version from October 2016 is used, because this version has less overhead (bootloader files are smaller) and the logic is simpler than in the newer versions. The newer versions support other boot modes than just mass storage device, which CLICK does not need.
+
+### Caveats
 Unfortunately, due to the VNC2L driver limitations, the 0x7EF packet must be sent by the bus ONLY when there is no payload SPI readback pending. This means that it can be sent:
 * Anytime the CM3 is "responsive", and completes read back of the SPI packets. This will make sure the VNC2L is not blocked awaiting a read from the CM3.
 * If the CM3 is not responsive, the 0x7EF must be the FIRST packet the VNC2L receives on boot. This can be accomplished by disabling the Time of Tone bus packets (load switch 27) and any macros, then turning the power off and on, and sending the 0x7EF packet.
