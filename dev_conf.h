@@ -24,7 +24,6 @@
 #include "vos.h"
 #include "SPISlave.h"
 #include "UART.h"
-#include "GPIO.h"
 #include "USB.h"
 #include "USBHost.h"
 #include "IOCTL.h"

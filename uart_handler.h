@@ -20,12 +20,6 @@
 #define UART_HEARTBEAT_APID_LSB 0x25
 #define UART_RETRANSMIT_APID_LSB 0x30
 
-/* UART reply CRCs */
-#define UART_PROC_CRC 0xB27C
-#define UART_READY_CRC 0x9DC5
-#define UART_HEARTBEAT_CRC 0xBE92
-#define UART_RETRANSMIT_CRC 0x999F
-
 /* UART processing data */
 typedef struct {
     uint32 blob_num;
@@ -35,7 +29,7 @@ typedef struct {
     uint16 data_offset;
 } uart_proc_t;
 
-uint8 uart_reply(uint8 apid_lsb, uint16 sequence, uint16 crc);
+uint8 uart_reply(uint8 apid_lsb, uint16 sequence);
 uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms);
 void uart_dbg(char *msg, uint16 number1, uint16 number2);
 

@@ -1,5 +1,5 @@
 /* Reflashes VNC2L program memory through UART on a Raspberry Pi
-** Must run Raspbian lite for some reason... ? */
+** Tested working on Raspbian 10 lite */
 #ifndef __INTELLISENSE__
 #include <termios.h>
 #include <unistd.h>
@@ -281,9 +281,6 @@ int read_flash(int uart, unsigned char addrL, unsigned char addrH, unsigned char
 
 void reset_vnc()
 {
-    pinMode(RST_PIN, OUTPUT);
-    pinMode(PROG_PIN, OUTPUT);
-    digitalWrite(PROG_PIN, LOW);
     digitalWrite(RST_PIN, HIGH);
     digitalWrite(RST_PIN, LOW);
     usleep(50000);
@@ -293,8 +290,23 @@ void reset_vnc()
 
 int main()
 {
+    FILE *rom;
+    int uart = 0;
+    unsigned int addr = 0, result = 0;
+    unsigned char addrL = 0, addrH = 0; 
+    char data[128], readback[129];
+
+    rom = fopen("CLICK.rom", "rb");
+    if (rom == NULL) return -1;
+    if (fread(data, sizeof(char), 128, rom) != 128) return -1;
+
     wiringPiSetup();
-    int uart = init();
+    uart = init();
+    if (uart < 0) return -1;
+    
+    pinMode(RST_PIN, OUTPUT);
+    pinMode(PROG_PIN, OUTPUT);
+    digitalWrite(PROG_PIN, LOW);
     reset_vnc();
     
     printf("Syncing...\n");
@@ -303,18 +315,7 @@ int main()
     if(init_flash(uart) == -1) return -1;
     printf("Baud rate set!\n");
 
-    FILE *rom = fopen("CLICK.rom", "rb");
-
-    char data[0xF400]; unsigned char addrL =  0; unsigned char addrH = 0; char count = 1;
-    unsigned int addr = 0, result = 0;
-    char readback[129];
-
-    for(int i=0; i < 128; i++)
-    {
-        data[i] = i;
-    }
-
-    while(fread(data, sizeof(char), 128, rom) > 0)
+    for(;;)
     {
         printf("\r0x%0X ", ((addrH)<<8)+addrL);
         fflush(stdout);
@@ -333,11 +334,15 @@ int main()
                     return -1;
                 }
             }
-            addrL += count;
-            if(addrL==0)
+            if (fread(data, sizeof(char), 128, rom) > 0)
             {
-                addrH += 1;
+                addrL += 1;
+                if(addrL==0)
+                {
+                    addrH += 1;
+                }
             }
+            else break;
         }
         else
         {

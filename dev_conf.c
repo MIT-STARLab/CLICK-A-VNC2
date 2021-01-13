@@ -136,20 +136,23 @@ uint8 dev_usb_wait(uint32 timeout_ms)
 {
     uint8 state = PORT_STATE_DISCONNECTED;
     usbhost_ioctl_cb_t iocb;
-    iocb.ioctl_code = VOS_IOCTL_USBHOST_GET_CONNECT_STATE;
     iocb.get = &state;
 
     /* Poll state until timeout */
     for(; timeout_ms > 250; timeout_ms -= 250)
     {
+        iocb.ioctl_code = VOS_IOCTL_USBHOST_GET_CONNECT_STATE;
         vos_dev_ioctl(usb, &iocb);
         if (state == PORT_STATE_ENUMERATED)
         {
             iocb.ioctl_code = VOS_IOCTL_USBHOST_DEVICE_GET_COUNT;
             vos_dev_ioctl(usb, &iocb);
-            return state;
+            if (state > 0)
+            {
+                return state;
+            }
         }
-        else vos_delay_msecs(250);
+        vos_delay_msecs(250);
     }
 
     return FALSE;

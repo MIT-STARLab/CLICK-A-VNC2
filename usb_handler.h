@@ -19,7 +19,7 @@
 #define USB_STAGE1_CLUSTER_LEN 8
 #define USB_STAGE1_BLOCK_LEN (USB_STAGE1_CLUSTER_LEN * USB_SECTOR_LEN)
 
-/* Stage 2/3 block slightly smaller to prevent buffer overrun due to UART */
+/* Stage 2/3 block slightly smaller to prevent buffer overrun due to UART chunking */
 #define USB_STAGE2_3_CLUSTER_LEN 7
 #define USB_STAGE2_3_BLOCK_LEN (USB_STAGE2_3_CLUSTER_LEN * USB_SECTOR_LEN)
 

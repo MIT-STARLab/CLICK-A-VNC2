@@ -5,10 +5,8 @@
 ** Firmware entry point
 */
 
-#include "packets.h"
 #include "dev_conf.h"
 #include "spi_handler.h"
-#include "uart_handler.h"
 #include "crc.h"
 
 #define IDLE_THREAD_STACK 512
@@ -38,7 +36,7 @@ void main()
     spislave_init(VOS_DEV_SPI_SLAVE_0, &spi0_conf);
     spislave_init(VOS_DEV_SPI_SLAVE_1, &spi1_conf);
 
-    /* Configure EMMC and interrupt GPIO as output and low */
+    /* Configure Select and interrupt GPIO as output and low on boot */
     vos_gpio_set_pin_mode(GPIO_RPI_IRQ, 1);
     vos_gpio_set_pin_mode(GPIO_RPI_EMMC, 1);
     vos_gpio_write_pin(GPIO_RPI_IRQ, 0);

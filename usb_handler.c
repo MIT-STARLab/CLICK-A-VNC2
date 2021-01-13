@@ -179,7 +179,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 
     /* Wait for the first block with longer UART timeout */
     proc->block_len = USB_STAGE2_3_BLOCK_LEN;
-    res = uart_get_block(proc, 30000);
+    res = uart_get_block(proc, 20000);
 
     /* Prepare bootloader transfer */
     if (res) res = usb_prepare_boot_stage(dev, USB_MSD_ELF_LEN);
@@ -235,7 +235,7 @@ static uint8 usb_third_stage(uart_proc_t *proc)
     /* Default block size */
     cluster_len = USB_STAGE2_3_CLUSTER_LEN;
     proc->block_len = USB_STAGE2_3_BLOCK_LEN;
-
+ 
     /* Start golden image write loop */
     while (res && sector < image_sectors)
     {
@@ -262,24 +262,20 @@ void usb_run_sequence()
     dev_usb_boot_t dev = { 0, 0, 0 };
     uart_proc_t proc = { 0, 0, 0, 0, 0 };
 
-    dev_uart_start();
-
     /* Drive EMMC_DISABLE low by setting Select high
     ** This also connects the USB hub to the RPi USB slave port */
     vos_gpio_write_pin(GPIO_RPI_EMMC, 1);
 
     /* Start the USB stack and wait for connection */
     dev_usb_start();
-    vos_delay_msecs(2000);
+    vos_delay_msecs(250);
 
     /* Check port state */
     if (dev_usb_status() == PORT_STATE_DISCONNECTED)
     {
-        uart_dbg("resetting rpi", 1, 1);
-
         /* Reset the RPi into USB bootloader mode.
         ** Following the reset, the USB enumeration happens after roughly 8-10 sec.
-        ** However, due to some internal USB bug, the USB stack crashes the system when it happens.
+        ** However, due to some internal USB bug, the USB stack crashes the VNC2L when it happens.
         ** This always happens during the first USB enumeration of the first RPi boot device.
         ** The only workaround is to let the crash happen and get reset by the internal watchdog...
         ** The second enumaration seems to always be successful. WTF.
@@ -297,7 +293,7 @@ void usb_run_sequence()
     else
     {
         /* Prepare UART */
-        // res = dev_uart_start();
+        res = dev_uart_start();
 
         uart_dbg("starting usb sequence", 1, 1);
 
@@ -318,9 +314,6 @@ void usb_run_sequence()
         /* If serial numbers equals one, run second stage */
         if (res && dev.sn == 1) res = usb_second_stage(&dev, &proc);
         else res = FALSE;
-
-        uart_dbg("skipping 3rd stage", res, res);
-        res = FALSE;
 
         /* Repeat for third-stage, the mass storage device */
         if (res) res = dev_usb_wait(5000);

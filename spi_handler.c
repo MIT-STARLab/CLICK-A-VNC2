@@ -11,8 +11,6 @@
 #include "dev_conf.h"
 #include "helpers.h"
 
-#include "uart_handler.h"
-
 /* Private variables */
 static vos_mutex_t bus_write_busy;
 static vos_mutex_t payload_read_busy;
