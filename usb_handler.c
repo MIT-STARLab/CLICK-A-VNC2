@@ -315,6 +315,9 @@ void usb_run_sequence()
         if (res) res = dev_usb_boms_acquire();
         if (res) res = usb_third_stage(&proc);
 
+        /* Send last ACK to bus before cleaning up */
+        if (res) uart_reply(UART_READY_APID_LSB, proc.blob_seq);
+
         /* Close all auxiliary drivers */
         dev_reprogramming_cleanup();
 

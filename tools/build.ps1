@@ -22,7 +22,7 @@ foreach ($file in $files) {
             continue
         }
     }
-	VinC.exe -c -d 0 -O 4 -o "$configuration\$file.asm" "$file.c"
+    VinC.exe -c -d 0 -O 4 -o "$configuration\$file.asm" "$file.c"
     VinAsm.exe -d 0 -o "$configuration\$file.obj" "$configuration\$file.asm"
     $objects += "$configuration\$file.obj"
     $rebuilt++
