@@ -346,6 +346,7 @@ int main()
         }
         else
         {
+            addrL = addrH = 0; 
             close(uart);
             uart = init();
             reset_vnc();

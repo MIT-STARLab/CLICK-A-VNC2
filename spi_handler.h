@@ -18,6 +18,5 @@
 void spi_handler_bus();
 void spi_handler_payload();
 void spi_handler_watchdog();
-void spi_uart_dbg(char *msg, uint16 number1, uint16 number2);
 
 #endif /* _spi_handler_H_ */
