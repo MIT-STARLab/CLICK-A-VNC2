@@ -19,7 +19,7 @@
 #define PACKET_TC_MAX_LEN 1024
 #define PACKET_TM_MAX_LEN 4128
 #define PACKET_IMAGE_OVERHEAD 16
-#define PACKET_IMAGE_TRIM 6
+#define PACKET_IMAGE_TRIM 2
 #define PACKET_UART_REPLY_LEN 12
 #define PACKET_SYNC_VALID(sync) (sync == PACKET_SYNC_MARKER)
 #define PACKET_SYNC_UPDATE(sync, ptr) sync = ((sync << 8) | ((*(ptr)) & 0xFF))

@@ -92,8 +92,7 @@ uint8 uart_get_block(uart_proc_t *proc, uint32 initial_timeout_ms)
             }
         }
 
-        /* Otherwise, process new data
-        ** TODO: Fix blob len after BCT FSW update */
+        /* Otherwise, process new data */
         else
         {
             retries = UART_MAX_RETRY + 1;
