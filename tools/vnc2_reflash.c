@@ -15,6 +15,7 @@
 #define TIMEOUT 0x20000
 #define INIT_TIMEOUT 0x200000
 #define READ_TIMEOUT 1000
+#define SLOW 0
 
 int init()
 {
@@ -120,8 +121,11 @@ int write_flash(int uart, unsigned char addrL, unsigned char addrH, char *data)
 int init_flash(int uart)
 {
     int i = 0;
-    char cmd[2] = {0x01, 0x02};
     unsigned char success = 0;
+  #ifdef SLOW
+    char cmd[2] = {0x01, 0x01};
+  #else
+    char cmd[2] = {0x01, 0x02};
     struct termios old, new;
     tcgetattr(uart, &old);
     tcgetattr(uart, &new);
@@ -129,12 +133,15 @@ int init_flash(int uart)
     new.c_iflag = IGNPAR;
     new.c_oflag = 0;
     new.c_lflag = 0;
+  #endif
     do
     {
         i = 0;
         write(uart, cmd, 2);
         usleep(50000);
+      #ifndef SLOW
         tcsetattr(uart, TCSAFLUSH, &new);
+      #endif
         while (i < INIT_TIMEOUT)
         {
             if (uartDataAvail(uart) > 0)
@@ -153,7 +160,9 @@ int init_flash(int uart)
         if (!success)
         {
             printf("Init flash cmd timeout\n");
+          #ifndef SLOW
             tcsetattr(uart, TCSAFLUSH, &old);
+          #endif
             usleep(50000);
         }
     } while(!success);
