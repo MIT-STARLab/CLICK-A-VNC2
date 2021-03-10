@@ -179,7 +179,7 @@ static uint8 usb_second_stage(dev_usb_boot_t *dev, uart_proc_t *proc)
 
     /* Wait for the first block with longer UART timeout */
     proc->block_len = USB_STAGE2_3_BLOCK_LEN;
-    res = uart_get_block(proc, 20000);
+    res = uart_get_block(proc, 120000);
 
     /* Prepare bootloader transfer */
     if (res) res = usb_prepare_boot_stage(dev, USB_MSD_ELF_LEN);
