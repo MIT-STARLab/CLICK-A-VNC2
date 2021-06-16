@@ -42,14 +42,14 @@ The reprogramming sequence is based on the usbboot project from Raspberry Pi: [h
 ### Caveats
 Unfortunately, due to the VNC2L driver limitations, the 0x7EF packet must be sent by the bus ONLY when there is no payload SPI readback pending. This means that it can be sent:
 * Anytime the CM3 is "responsive", and completes read back of the SPI packets. This will make sure the VNC2L is not blocked awaiting a read from the CM3.
-* If the CM3 is not responsive, the 0x7EF must be the FIRST packet the VNC2L receives on boot. This can be accomplished by disabling the Time of Tone bus packets (load switch 27) and any macros, then turning the power off and on, and sending the 0x7EF packet.
+* If the CM3 is not responsive, the 0x7EF must be the FIRST packet the VNC2L receives on boot. This can be accomplished by disabling the Time of Tone and no-op bus packets, then turning the power off and on, and sending the 0x7EF packet.
 
 Furthermore, due to another bug in the VNC2L USB driver, the VNC2L has to reset itself roughly after 12-13 seconds since the first 0x7EF is received.
 
 After that, another 0x7EF must be sent to finish the USB initialization sequence. Only then can the UART data be sent from the bus.
 
 The bus shall thus implement the following reprogramming sequence:
-1. Turn ToT packets off
+1. Turn ToT & no-op packets off
 2. Turn payload power off
 3. Turn payload power on
 4. Wait 1 sec for VNC2L boot
@@ -59,4 +59,4 @@ The bus shall thus implement the following reprogramming sequence:
 8. Send 0x7EF
 9. Wait 3 sec
 10. Start UART golden image transfer
-11. Turn ToT packets on
+11. Turn ToT & no-op packets on
